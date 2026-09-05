@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/0al-spec/agent-surface",
+  "commit": "951871c2d55db25d35512f29cc0970c69aa5cfd9",
+  "profile": "asp-jcs-sha-256",
+  "sources": [
+    {
+      "path": "drafts/modules/evidence.md",
+      "sha256": "594d71c3972b350dbe21fea6078d301fbbc817470ab3feb07a95bd695ae0b86f"
+    }
+  ]
+}

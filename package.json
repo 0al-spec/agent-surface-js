@@ -1,0 +1,41 @@
+{
+  "name": "@0al/agent-surface",
+  "version": "0.1.0-experimental.0",
+  "description": "Experimental Agent Surface Protocol SDK for Node.js",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0al-spec/agent-surface-js.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "spec-lock.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "biome check . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "canonicalize": "4.0.0",
+    "jsonc-parser": "3.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.8",
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.1"
+  }
+}
