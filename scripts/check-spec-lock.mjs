@@ -10,9 +10,14 @@ if (
 ) {
   throw new Error('Invalid spec lock');
 }
+if (
+  !Array.isArray(lock.sources) ||
+  lock.sources.length !== 1 ||
+  lock.sources[0]?.path !== 'drafts/modules/evidence.md'
+) {
+  throw new Error('Spec lock must contain exactly one evidence source');
+}
 for (const source of lock.sources) {
-  if (source.path !== 'drafts/modules/evidence.md')
-    throw new Error('Unexpected source');
   const response = await fetch(
     `https://raw.githubusercontent.com/0al-spec/agent-surface/${lock.commit}/${source.path}`,
     {
