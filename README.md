@@ -51,3 +51,7 @@ decisions. No full ASP conformance or independent interoperability is claimed.
 See the [architecture proposal](docs/architecture.md) for the target boundaries,
 Calcu extraction map, and incremental delivery criteria. It describes future
 roles, not additional implemented exports.
+
+The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
+current Calcu development records from the normative requirements that must be
+aligned before extracting manifest, Grant and session objects.
