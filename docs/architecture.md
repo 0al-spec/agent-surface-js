@@ -2,6 +2,9 @@
 
 Status: design draft, not an implemented API or a conformance claim.
 
+The [first boundary contract](boundary-contract.md) compares Calcu with the pinned
+RFC and records prerequisites before extracting manifest/Grant/session values.
+
 The SDK should remove repeated ASP boundary code from applications without
 absorbing their business logic or the agent's internal execution model. Start
 with one Node.js package and one consumer (Calcu); extract demonstrated reuse
