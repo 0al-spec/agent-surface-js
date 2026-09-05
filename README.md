@@ -47,3 +47,7 @@ agents. This first slice has three focused objects and no constructor I/O.
 The package is not published yet. Full manifest validation, Grant/session state,
 admission, browser support, transports, and Calcu migration are subsequent design
 decisions. No full ASP conformance or independent interoperability is claimed.
+
+See the [architecture proposal](docs/architecture.md) for the target boundaries,
+Calcu extraction map, and incremental delivery criteria. It describes future
+roles, not additional implemented exports.
