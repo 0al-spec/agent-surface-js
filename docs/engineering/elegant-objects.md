@@ -1,7 +1,7 @@
 # Elegant Objects engineering policy
 
-Adapted for new SDK development and refactoring from the user-selected
-`PromptEval/tools/prompt-eval/prompts/elegant_objects/eo_refactor.md`.
+Adapted for new SDK development and refactoring from
+[PromptEval's Elegant Objects refactoring guidelines](https://github.com/SoundBlaster/PromptEval/blob/main/tools/prompt-eval/prompts/elegant_objects/eo_refactor.md).
 
 Preserve observable behavior first. Refactor in small, reviewable steps. Existing
 tests are characterization tests unless a task explicitly changes behavior.
