@@ -1,11 +1,13 @@
-# First boundary extraction contract
+# First SDK + Calcu boundary contract
 
 Status: design and gap inventory. No new SDK exports, accepted wire objects,
 schema validators, or conformance claims are introduced by this document.
 
 ## Decision
 
-Extract validated binding values before issuer/executor behavior. Do **not**
+Implement validated binding values in the SDK before issuer/executor behavior,
+then integrate each tested behavior into Calcu in a bounded vertical slice.
+Calcu need not implement the entire contract first. Do **not**
 copy Calcu's `SurfaceSnapshot`, `GrantObject`, or `SessionRecord` into the public
 SDK as complete ASP wire contracts. They are useful development records, but
 their current shapes omit normative requirements or use different state names.
@@ -14,16 +16,24 @@ The initial target is one non-persisted `calculation.propose` action on a
 proposal-only surface, with Compatibility Bearer credentials held by a trusted
 runtime. No read actions, persisted proposals, write stages, raw credential
 release, subdelegation, OAuth lifecycle, Proof-Bound credentials, or optional
-purpose/runtime-attestation profiles are selected for this extraction.
+purpose/runtime-attestation profiles are selected for this initial slice.
 This is an implementation scope, not a new registered ASP profile or an
 exemption from base ASP requirements.
 
+The [architecture](architecture.md) defines reusable engines, adapters and
+idiomatic integration boundaries. The
+[ASP ADP backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
+alone owns task status and cross-repository approval/order; its updated strategy
+is reviewed in [ASP PR #90](https://github.com/0al-spec/agent-surface/pull/90).
+This document retains BC-01…08 as acceptance gaps, not another task tracker.
+
 ## Evidence and version boundary
 
-Normative baseline: ASP `951871c2d55db25d35512f29cc0970c69aa5cfd9`.
+Existing comparison and executable SDK lock baseline:
+ASP `951871c2d55db25d35512f29cc0970c69aa5cfd9`.
 Observed consumer: Calcu `5e5a23f` (hashing consumer branch); its executor,
 identity and mediator contracts are unchanged from `4866de0`.
-All upstream links below are pinned, not links to mutable `main`.
+All source links in the comparison table below are pinned.
 
 | Source | Relevant requirements | SHA-256 of complete module |
 | --- | --- | --- |
@@ -39,6 +49,15 @@ negative tests explicitly. Keep the ASP revision unchanged unless a separate
 compatibility decision requires an update. The similarly named upstream
 `mocks/v1/manifest.schema.json` describes a mock bundle, not an application
 Agent Surface Manifest; it must not be used as its schema.
+
+The next slice plans to use the explicit `user_managed` mode defined in the
+[newer ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract),
+not yet in this SDK's executable lock/support. Before accepting it, make an
+explicit compatibility change covering the selected authoritative modules,
+source digests, validators and regression vectors. This planning edit changes
+neither `spec-lock.json` nor existing runtime acceptance. The inventory below
+remains a historical comparison, not a claim that all gaps still exist in the
+latest Calcu checkout or that the old lock supports the new mode.
 
 ## 1. Current Calcu records: exact inventory
 
@@ -142,7 +161,7 @@ on invocation. There is no authenticated session start/state handshake, pause,
 resume, completion or failure transition protocol. Task completion currently
 revokes a task's Grant rather than recording normative session completion.
 
-## 2. Gaps that block a normative extraction
+## 2. Gaps that block advertising supported behavior
 
 | ID | Observed gap | Required disposition before advertising support |
 | --- | --- | --- |
@@ -155,15 +174,17 @@ revokes a task's Grant rather than recording normative session completion.
 | BC-07 | Local errors collapse distinct protocol failures | Preserve internal diagnostics but map action unknown, mode invalid and integrity mismatch according to the chosen ASP binding; do not export Calcu's generic `action_not_allowed` for all three. |
 | BC-08 | Development transport/provisioning differs from discovery metadata | Explicitly map the logical audience, canonical discovery URL and action endpoint to authenticated loopback transport. Do not equate them or change hashes opportunistically per listener port. |
 
-These are migration requirements, not claims of an exploitable bypass in the
+These are migration requirements for SDK + consumer slices, not claims of an exploitable bypass in the
 four-operation demo. Existing test success demonstrates the implemented local
 boundary, not that the missing protocol contracts are present.
 
-## 3. Contract for the first SDK value slice
+## 3. SDK value contracts by delivery slice
 
 The names below are provisional object roles, not new wire keys or exports.
 Parsing, hash verification, identity verification and live admission are separate
 operations. Constructors only capture immutable inputs/dependencies (EO policy).
+Manifest and Grant values are the first ADP-05 foundation. The session design
+below is reserved for ADP-07; it is not additional first-slice implementation.
 
 ### Retained manifest binding
 
@@ -222,6 +243,9 @@ identity status, prove user consent, or turn its id/hash into a credential.
 
 ### Session binding and state
 
+Deferred to ADP-07 (BC-05/06/07), including representation validation and state
+behavior. The first ADP-05 slice does not advertise these session objects.
+
 Store the complete tuple, either inline or through immutable exact references:
 `subject.user`, `grant_id`, `grant_hash`, runtime, agent,
 `identity_evidence_hash`, `app_id`, `surface_version`, `surface_hash`.
@@ -236,22 +260,32 @@ Grant expiry/revocation makes admission impossible independently of session
 state. Neither a valid serialized session nor a local worker process can create
 an authoritative active record.
 
-The first value slice validates representation and tuple equality only. Transition
+The ADP-07 value sub-slice validates representation and tuple equality only. Transition
 effects, occupancy, identity status, revocation fences and quota require the
 later application-owned state implementation. It must atomically check/commit
 generation and quota, including after asynchronous verification. Session cancel
 does not itself revoke its Grant, cancel another session or imply rollback of a
 started action. A separate authenticated revocation policy remains separate.
 
+SDK state engines may implement these transitions inside the trusted host;
+the host still owns policy, principal/identity trust and authority storage.
+A transactional adapter must expose the required atomic/fencing semantics.
+Representation-only validation or generic key/value persistence is not evidence
+of crash-safe admission, and the SDK cannot automatically reconcile an arbitrary
+business transaction or external side effect.
+
 ## 4. Acceptance matrix for implementation PRs
 
 All rows below are **planned**, not newly passing SDK tests. Existing Calcu tests
 in `server/boundary.test.ts`, `https.test.ts`, `hash.test.ts` remain regression
 evidence for the development baseline, not substitutes for these new fixtures.
+Manifest/Grant rows belong to ADP-05 after the lock update; consent rows to the
+coordinated ADP-05/06 work; session/generation/state rows to ADP-07. The complete
+tuple fixture is composed ADP-08 evidence, not an ADP-05 completion prerequisite.
 
 | Test | Expected boundary outcome |
 | --- | --- |
-| Complete selected manifest + matching Grant + exact session tuple | Value validation succeeds; no execution/issuance side effect |
+| Complete selected manifest + matching Grant + exact session tuple (ADP-08 composition) | Value validation succeeds; no execution/issuance side effect |
 | Calcu's current abbreviated snapshot submitted as full manifest | Reject, despite correct manifest-domain digest |
 | Propose with effects, persisted=true, write companion or unknown mode | Reject unsupported/inconsistent inventory before issuance/admission |
 | Changed schema/action/data exposure with old surface hash | Reject integrity mismatch; never repair the retained snapshot |
@@ -265,24 +299,51 @@ evidence for the development baseline, not substitutes for these new fixtures.
 | Resume terminal id; resume presented as rotate-and-revoke | Reject transition; no silently substituted state |
 | Concurrent quota=1 and revocation during async verification | Later state tests: at most one admitted call; no post-fence admission |
 | Unknown required extension/Proof-Bound/optional purpose profile | Explicit unsupported result, never partial enforcement or field stripping |
+| Explicit `user_managed` after the reviewed lock update | Preserve exactly in source, issuer-derived `Grant.data_exposure` and consent; no deletion/provider-training claim; stricter applicable policy remains |
+| Omitted/unknown retention, extra deletion/lifetime fields, or caller changes a pinned strict contract | Reject; no silent default/downgrade and no reuse of old surface/Grant/consent bindings |
+| Changed principal, request, identity or exposure after consent preview | Trusted issuer refuses stale/unbound consent before issuance; browser supplies no derived projection or credential |
+| Selected guarantees require an absent/unsupported adapter capability | Explicit configuration/startup rejection where knowable; dynamic authority still checked at invocation; no fallback to memory for required durability |
+
+The new-mode rows are future acceptance cases contingent on the explicit source
+lock update above, not features of the currently locked implementation. Reuse
+upstream positive/negative vectors and add Calcu-specific policy/HTTPS evidence;
+do not invent a separate protocol or treat test-only identity as production trust.
 
 ## 5. Next implementation order
 
-1. **Manifest completion in Calcu**, with schema fixtures and an explicit exposure
-   policy. Decide data classification, plaintext retention and deletion behavior
-   against actual UI/provider storage before advertising them. Do not insert an
-   empty class list or `transient` promise merely to satisfy schema validation.
-2. **Grant projection alignment** (BC-03/04): both identity copies and derived
-   exposure; new surface/Grant hashes and fresh issuance. Never rewrite already
-   issued grants or revive old sessions to hide the migration.
-3. **SDK value objects**, with expanded pinned source coverage, positive/negative
-   fixtures and a Calcu consumer PR. Keep all network and identity I/O outside
-   parsers. No generic storage framework yet.
-4. **Session/state extraction** after BC-05/06/07: explicit lifecycle and
-   authoritative atomic admission. Preserve test-only trust infrastructure as
-   such, and add lifecycle/transport conformance separately.
+1. **Revision and value contract (ADP-05, BC-01/02/04/08).** Review the selected
+   newer RFC/source lock, then build SDK manifest/Grant/exposure behavior and
+   positive/negative fixtures. Preserve strict JSON/hash boundaries. Calcu owns
+   the curated declaration, classifications and handling policy; SDK supplies
+   validated construction/interpretation, not policy inferred from numbers.
+2. **Projection behavior (ADP-05, BC-03/04).** Build issuer-derived exposure and
+   complete identity projection plus independent runtime validation. Hash the
+   complete views; never trust client projection, rewrite issued Grants or
+   revive old sessions. Identity/trust status comes from explicit verified
+   collaborators, not the parser or a successful shape test.
+3. **Calcu consent/integration (ADP-05/06 with per-slice ADP-08 evidence).** Replace
+   matching development behavior with the tested SDK, preserve the HTTPS path,
+   and bind authenticated principal to exact immutable preview and fresh Grant.
+   Reject stale consent before issuance; compare returned projection before use.
+   User-managed handling does not need agent-internal retention probes. Known
+   source restrictions, pre-delivery controls and applicable policies still do.
+4. **State engine + adapter (ADP-07 with ADP-08).** Implement BC-05/06/07 lifecycle
+   and authoritative atomic admission in reusable SDK behavior, one qualified
+   transactional adapter and Calcu integration. Test restart/crash, generation,
+   revocation, lineage and unavailable storage. Keep test-only trust explicit.
+5. **Stabilization (ADP-09).** After integrated evidence, stabilize demonstrated
+   public APIs and validate reuse with a second small consumer. Other language
+   wrappers/package boundaries require their own concrete use and evidence.
 
-The first two steps are prerequisites discovered by this comparison, not runtime
-changes made by this PR. Full public discovery, privacy enforcement, session
-control endpoints and conformance certification are not completed by documenting
-field shapes. Agree the exposure policy before coding its promises.
+Each slice records shared SDK work separately from Calcu integration effort,
+app-specific code, configuration and manual security decisions. The first
+implementation PR must state its selected sub-slice, source-lock change, boundary
+claims and positive/negative tests; it is not approval of every step here.
+Pure values can be tested without full Calcu migration. ADP-03 design inputs and
+scoped ADP-02 approval gate live integration; actual-path tests accumulate within
+ADP-05…08, not as a circular prerequisite for starting them.
+
+Full public discovery, privacy enforcement, session control and conformance are
+not completed by documenting fields or passing one slice. Required missing
+state/identity/consent/durability obligations block activation of the selected
+full contract; partial evidence must stay explicitly partial.

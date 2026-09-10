@@ -36,8 +36,8 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 
 ## Compatibility and engineering
 
-[spec-lock.json](spec-lock.json) pins the same ASP revision used by the Calcu
-experiment, with the SHA-256 of the upstream evidence module. CI checks that
+[spec-lock.json](spec-lock.json) pins the ASP revision used by the original Calcu
+comparison, with the SHA-256 of the upstream evidence module. CI checks that
 source digest in a separate job; local behavior tests use the normative vectors
 without network access. Lock updates require explicit compatibility review.
 
@@ -45,13 +45,19 @@ without network access. Lock updates require explicit compatibility review.
 agents. This first slice has three focused objects and no constructor I/O.
 
 The package is not published yet. Full manifest validation, Grant/session state,
-admission, browser support, transports, and Calcu migration are subsequent design
-decisions. No full ASP conformance or independent interoperability is claimed.
+admission, browser support and transports remain future behavior. Calcu will
+integrate supported SDK slices incrementally, not implement the complete RFC
+first for later extraction. No full ASP conformance or independent interoperability
+is claimed.
 
 See the [architecture proposal](docs/architecture.md) for the target boundaries,
-Calcu extraction map, and incremental delivery criteria. It describes future
-roles, not additional implemented exports.
+Calcu integration map, modular security engines/adapters and idiomatic
+language/framework integration direction. These simplify integration, not
+mandatory guarantees, and describe future roles rather than implemented exports.
 
 The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
-current Calcu development records from the normative requirements that must be
-aligned before extracting manifest, Grant and session objects.
+historically inspected Calcu records from the normative requirements and defines
+the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy
+target requires a separate source-lock/compatibility update before implementation.
+Task status and cross-repository sequence live only in the
+[ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md).
