@@ -1,23 +1,23 @@
 {
   "repository": "https://github.com/0al-spec/agent-surface",
-  "commit": "951871c2d55db25d35512f29cc0970c69aa5cfd9",
+  "commit": "b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691",
   "profile": "asp-jcs-sha-256",
   "sources": [
     {
       "path": "drafts/modules/core.md",
-      "sha256": "b1010d279dd1f9f82b28a575748822a02bcf445f133b512c7750200bafaf5cce"
+      "sha256": "38f8a0f6dc437a3e4b642409fe53c9853fcb62f85897c097936f7114e5ea6131"
     },
     {
       "path": "drafts/modules/authorization.md",
-      "sha256": "c7fdaee130650146e525d886253336ca19c7f6ace0a5efa6a6f981c47e34a278"
+      "sha256": "00fdc53ccda7545234668c43cbcbc8d29284ed442063b40747ca725cabfb652c"
     },
     {
       "path": "drafts/modules/privacy.md",
-      "sha256": "cbdd129443e9fe29557dc17321db41e1a7e485049b5c6826ed37b9edb63773c9"
+      "sha256": "c68a7855134b2b7e054521f57c34da8d1bbd49b2cb0a019ff922117692a85566"
     },
     {
       "path": "drafts/modules/evidence.md",
-      "sha256": "594d71c3972b350dbe21fea6078d301fbbc817470ab3feb07a95bd695ae0b86f"
+      "sha256": "3d533d71233a7f480653b61d70d67b13a87324f78aeb53d5eb27685db0056be6"
     }
   ]
 }

@@ -29,7 +29,7 @@ This document retains BC-01…08 as acceptance gaps, not another task tracker.
 
 ## Evidence and version boundary
 
-Existing comparison and executable SDK lock baseline:
+Historical comparison baseline (not the current executable source lock):
 ASP `951871c2d55db25d35512f29cc0970c69aa5cfd9`.
 Observed consumer: Calcu `5e5a23f` (hashing consumer branch); its executor,
 identity and mediator contracts are unchanged from `4866de0`.
@@ -42,23 +42,24 @@ All source links in the comparison table below are pinned.
 | [Privacy](https://github.com/0al-spec/agent-surface/blob/951871c2d55db25d35512f29cc0970c69aa5cfd9/drafts/modules/privacy.md) | Data Exposure Contract and effective Grant projection | `cbdd129443e9fe29557dc17321db41e1a7e485049b5c6826ed37b9edb63773c9` |
 | [Evidence](https://github.com/0al-spec/agent-surface/blob/951871c2d55db25d35512f29cc0970c69aa5cfd9/drafts/modules/evidence.md) | Canonical Object Hash Profile | `594d71c3972b350dbe21fea6078d301fbbc817470ab3feb07a95bd695ae0b86f` |
 
-These comparison digests are also enforced by `spec-lock.json` and its checker:
-exactly Core, Authorization, Privacy and Evidence, with regression tests for
-missing, duplicate, unexpected and corrupted sources. This compatibility-gate
-extension keeps the ASP revision and existing hashing behavior unchanged; it
+The table deliberately retains the historical comparison digests. The current
+`spec-lock.json` instead pins `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`, as recorded
+in the [compatibility review](compatibility/user-managed-source-update.md).
+Its checker still requires exactly Core, Authorization, Privacy and Evidence,
+with tests for missing, duplicate, unexpected and corrupted sources. The update
 does not implement new domain contracts. Further revision changes need an
 explicit compatibility decision. The similarly named upstream
 `mocks/v1/manifest.schema.json` describes a mock bundle, not an application
 Agent Surface Manifest; it must not be used as its schema.
 
-The next slice plans to use the explicit `user_managed` mode defined in the
-[newer ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract),
-not yet in this SDK's executable lock/support. Before accepting it, make an
-explicit compatibility change covering the selected authoritative modules,
-source digests, validators and regression vectors. Extending coverage at the old
-revision does not accept this newer mode or change runtime acceptance. The inventory below
-remains a historical comparison, not a claim that all gaps still exist in the
-latest Calcu checkout or that the old lock supports the new mode.
+The next slice plans to implement explicit `user_managed` handling defined in
+the now-pinned [ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract).
+The reviewed source/digest update and hashing regression vectors make the design
+fixture source-aligned, not an accepted runtime contract. Manifest/Grant schema
+validation, exact projection, consent and actual-path enforcement still require
+their implementation slices. The inventory below remains a historical
+comparison, not a claim that all gaps still exist in the latest Calcu checkout
+or that the old lock supports the new mode.
 
 ## 1. Current Calcu records: exact inventory
 
@@ -280,7 +281,7 @@ business transaction or external side effect.
 All rows below are **planned**, not newly passing SDK tests. Existing Calcu tests
 in `server/boundary.test.ts`, `https.test.ts`, `hash.test.ts` remain regression
 evidence for the development baseline, not substitutes for these new fixtures.
-Manifest/Grant rows belong to ADP-05 after the lock update; consent rows to the
+Manifest/Grant rows belong to ADP-05 using the reviewed lock; consent rows to the
 coordinated ADP-05/06 work; session/generation/state rows to ADP-07. The complete
 tuple fixture is composed ADP-08 evidence, not an ADP-05 completion prerequisite.
 
@@ -300,20 +301,20 @@ tuple fixture is composed ADP-08 evidence, not an ADP-05 completion prerequisite
 | Resume terminal id; resume presented as rotate-and-revoke | Reject transition; no silently substituted state |
 | Concurrent quota=1 and revocation during async verification | Later state tests: at most one admitted call; no post-fence admission |
 | Unknown required extension/Proof-Bound/optional purpose profile | Explicit unsupported result, never partial enforcement or field stripping |
-| Explicit `user_managed` after the reviewed lock update | Preserve exactly in source, issuer-derived `Grant.data_exposure` and consent; no deletion/provider-training claim; stricter applicable policy remains |
+| Explicit `user_managed` under the reviewed lock | Preserve exactly in source, issuer-derived `Grant.data_exposure` and consent; no deletion/provider-training claim; stricter applicable policy remains |
 | Omitted/unknown retention, extra deletion/lifetime fields, or caller changes a pinned strict contract | Reject; no silent default/downgrade and no reuse of old surface/Grant/consent bindings |
 | Changed principal, request, identity or exposure after consent preview | Trusted issuer refuses stale/unbound consent before issuance; browser supplies no derived projection or credential |
 | Selected guarantees require an absent/unsupported adapter capability | Explicit configuration/startup rejection where knowable; dynamic authority still checked at invocation; no fallback to memory for required durability |
 
-The new-mode rows are future acceptance cases contingent on the explicit source
-lock update above, not features of the currently locked implementation. Reuse
+The new-mode rows remain future implementation acceptance cases despite the
+completed source-lock review, not features of the hashing-only implementation. Reuse
 upstream positive/negative vectors and add Calcu-specific policy/HTTPS evidence;
 do not invent a separate protocol or treat test-only identity as production trust.
 
 ## 5. Next implementation order
 
 1. **Revision and value contract (ADP-05, BC-01/02/04/08).** Review the selected
-   newer RFC/source lock, then build SDK manifest/Grant/exposure behavior and
+   source-lock compatibility record, then build SDK manifest/Grant/exposure behavior and
    positive/negative fixtures. Preserve strict JSON/hash boundaries. Calcu owns
    the curated declaration, classifications and handling policy; SDK supplies
    validated construction/interpretation, not policy inferred from numbers.

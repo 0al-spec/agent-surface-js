@@ -97,7 +97,9 @@ and Grant; adding an action never silently upgrades existing authority.
 `proposal_only` here includes one side-effect-free `read` and two non-persisted
 `propose` actions. This Hello design does not widen the first Calcu slice's
 single `calculation.propose` action or implement `user_managed` handling in the
-currently pinned SDK. The source lock remains unchanged.
+SDK. The [reviewed source-lock update](../../../docs/compatibility/user-managed-source-update.md)
+now pins the revision defining that grammar; it does not qualify a provider or
+implement the handling contract. The fixture bytes and surface hash are unchanged.
 
 The manifest has reserved `.invalid` endpoints and unconfigured `auth`/`audit`
 placeholders. A matching surface hash or closed schema does not validate the
