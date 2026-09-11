@@ -46,7 +46,17 @@ this source coverage does not implement their contracts. Local behavior tests us
 without network access. Lock updates require explicit compatibility review.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
-agents. This first slice has three focused objects and no constructor I/O.
+agents. Value objects use explicit behavior and no constructor I/O.
+
+## Offline exposure validation
+
+`DataClassCatalog`, `DataExposure`, and `ManifestExposureDeclarations` now
+validate the pinned Data Exposure declaration grammar and inventory coverage.
+All three retention modes are supported, including the exact closed
+`user_managed` object. See [behavior, examples and limits](docs/data-exposure-values.md).
+`ManifestExposureDeclarations` is deliberately a **partial** check: it does not
+validate auth, profiles, schemas, action semantics or a complete manifest.
+Hashing remains separate; neither operation establishes disclosure authority.
 
 The package is not published yet. Full manifest validation, Grant/session state,
 admission, browser support and transports remain future behavior. Calcu will
@@ -73,7 +83,10 @@ sketch, excluded from the published package.
 The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
 historically inspected Calcu records from the normative requirements and defines
 the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy
-target's source revision is now pinned; manifest/Grant validation and actual-path
-handling enforcement remain separate, unimplemented work.
+target's source revision is now pinned. The
+[exposure declaration sub-slice](docs/data-exposure-values.md) is implemented;
+complete manifest/Grant validation and actual-path handling enforcement remain
+separate, unimplemented work. The normative inventory records the decisions
+needed before a complete non-OAuth manifest validator can be implemented.
 Task status and cross-repository sequence live only in the
 [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md).
