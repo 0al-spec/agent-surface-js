@@ -42,9 +42,14 @@ resolution and live enforcement remain separate obligations.
 
 All constructors assign immutable `JsonDocument` dependencies. Explicit
 `validate()` methods return `undefined` or throw `Error` with a fixed code.
-Validation does not issue a proof or a reusable authorization token. Each call
-parses fresh values; it does not cache, sort, normalize, default, remove fields
-or change caller documents. Pass original JSON text, not a previously parsed
+Validation does not issue a proof or a reusable authorization token. A catalog
+memoizes its private known-ID set only after its entire immutable document passes
+validation; the set is never exposed or mutated. Failed catalog checks are not
+cached. Every exposure class list is parsed and checked independently. Each
+manifest validation pass parses the original document and creates one catalog
+shared by all its sources, so catalog work is not multiplied by source count.
+There is no cross-manifest or global cache. Validation does not sort, normalize,
+default, remove fields or change caller documents. Pass original JSON text, not a previously parsed
 object whose duplicates or invalid numeric values may already have been erased.
 Methods perform no network, filesystem, credential, process or clock operations.
 

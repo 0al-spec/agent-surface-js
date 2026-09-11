@@ -4,6 +4,7 @@ import type { JsonDocument } from './json-document.js';
 /** Offline declarations only: labels and classification are publisher assertions. */
 export class DataClassCatalog {
   readonly #document: JsonDocument;
+  #known: ReadonlySet<string> | undefined;
 
   constructor(document: JsonDocument) {
     this.#document = document;
@@ -14,7 +15,7 @@ export class DataClassCatalog {
   }
 
   validateClasses(document: JsonDocument): void {
-    const known = new Set(this.#identifiers());
+    const known = this.#identifiers();
     const classes = document.parse();
     if (!Array.isArray(classes)) throw new Error('invalid_data_exposure');
     this.#ordered(classes, 'invalid_data_exposure');
@@ -22,7 +23,8 @@ export class DataClassCatalog {
       throw new Error('invalid_data_exposure');
   }
 
-  #identifiers(): string[] {
+  #identifiers(): ReadonlySet<string> {
+    if (this.#known !== undefined) return this.#known;
     const declarations = this.#document.parse();
     if (!Array.isArray(declarations)) throw new Error('invalid_data_classes');
     const ids = declarations.map((value) => {
@@ -43,7 +45,10 @@ export class DataClassCatalog {
       return entry.text('id');
     });
     this.#ordered(ids, 'invalid_data_classes');
-    return ids;
+    // Publish only after the whole immutable catalog passes. Never mutate or
+    // expose this set; invalid catalogs must not leave a partially trusted view.
+    this.#known = new Set(ids);
+    return this.#known;
   }
 
   #ordered(values: unknown[], error: string): void {

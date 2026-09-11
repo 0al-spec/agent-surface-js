@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DataClassCatalog } from '../src/data-class-catalog.js';
 import { DataExposure } from '../src/data-exposure.js';
 import { JsonDocument } from '../src/json-document.js';
@@ -71,6 +71,38 @@ function expectCode(behavior: () => void, code: string): void {
 }
 
 describe('DataClassCatalog', () => {
+  it('reuses only successfully validated IDs and still checks each class list', () => {
+    const document = json(classes);
+    const parse = vi.spyOn(document, 'parse');
+    const value = new DataClassCatalog(document);
+    expect(parse).not.toHaveBeenCalled();
+    value.validate();
+    for (let index = 0; index < 5; index += 1) {
+      expect(() => value.validateClasses(json(['unknown']))).toThrow(
+        'invalid_data_exposure',
+      );
+      expect(value.validateClasses(json(['class.a']))).toBeUndefined();
+      expect(value.validateClasses(json([]))).toBeUndefined();
+    }
+    value.validate();
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
+  it('never caches a partially validated or invalid catalog', () => {
+    const document = json([...classes, classes[0]]);
+    const parse = vi.spyOn(document, 'parse');
+    const value = new DataClassCatalog(document);
+    expect(() => value.validate()).toThrow('invalid_data_classes');
+    expect(() => value.validateClasses(json([]))).toThrow(
+      'invalid_data_classes',
+    );
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(catalog().validateClasses(json(['class.a']))).toBeUndefined();
+    expect(() => catalog([]).validateClasses(json(['class.a']))).toThrow(
+      'invalid_data_exposure',
+    );
+  });
+
   it('accepts an empty catalog and every supported classification', () => {
     expect(new DataClassCatalog(json([])).validate()).toBeUndefined();
     expect(catalog().validate()).toBeUndefined();

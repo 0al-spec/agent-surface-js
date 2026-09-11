@@ -20,6 +20,7 @@ export class ManifestExposureDeclarations {
     const catalog = new DataClassCatalog(
       new JsonDocument(JSON.stringify(manifest.list('data_classes'))),
     );
+    // Prepare one private known-ID view, shared across every source in this pass.
     catalog.validate();
     for (const kind of ['resources', 'actions', 'events']) {
       const identifiers = new Set<string>();

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   JsonDocument,
   ManifestExposureDeclarations,
@@ -37,6 +37,53 @@ const inventory = {
 };
 
 describe('manifest exposure declarations, not full manifest validation', () => {
+  it('parses one catalog per validation pass, not once per source', () => {
+    const dataClasses = Array.from({ length: 64 }, (_, index) => ({
+      id: `class.${String(index).padStart(3, '0')}`,
+      classification: 'private',
+      label: 'Result',
+      description: 'Application result.',
+    }));
+    const sources = Array.from({ length: 32 }, (_, index) => ({
+      id: `source.${index}`,
+      data_exposure: {
+        ...exposure,
+        classes: index % 2 === 0 ? [] : ['class.000'],
+      },
+    }));
+    const document = new JsonDocument(
+      JSON.stringify({
+        data_classes: dataClasses,
+        resources: sources,
+        actions: sources,
+        events: sources,
+      }),
+    );
+    const checker = new ManifestExposureDeclarations(document);
+    const parse = vi.spyOn(JsonDocument.prototype, 'parse');
+    try {
+      for (let pass = 1; pass <= 2; pass += 1) {
+        checker.validate();
+        const catalogParses = parse.mock.results.filter(
+          (result) =>
+            result.type === 'return' &&
+            Array.isArray(result.value) &&
+            result.value.length === 64 &&
+            result.value[0]?.classification === 'private',
+        );
+        expect(catalogParses).toHaveLength(pass);
+      }
+    } finally {
+      parse.mockRestore();
+    }
+    expect(document.parse()).toEqual({
+      data_classes: dataClasses,
+      resources: sources,
+      actions: sources,
+      events: sources,
+    });
+  });
+
   it('checks every source kind including unscoped control events without choosing authority', () => {
     const document = new JsonDocument(JSON.stringify(inventory));
     expect(
