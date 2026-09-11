@@ -40,13 +40,16 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 ## Compatibility and engineering
 
 [spec-lock.json](spec-lock.json) pins ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`,
-with SHA-256 digests of Core, Authorization, Privacy and Evidence. The
+with SHA-256 digests of Core, Authorization, Privacy, Evidence and Safe Effects. The
 [compatibility review](docs/compatibility/user-managed-source-update.md) records
 the update from the original Calcu comparison revision, covering the Hello
 fixture's explicit `user_managed` grammar without adding runtime support.
 CI requires exactly those sources and verifies each digest in a separate job;
 this source coverage does not implement their contracts. Local behavior tests use normative vectors
 without network access. Lock updates require explicit compatibility review.
+The [manifest contract decision](docs/manifest-contract-decision.md) records the
+additive Safe Effects coverage, the next offline schema slice, and the still-open
+native issuance binding gate. This is design, not complete manifest validation.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
 agents. Value objects use explicit behavior and no constructor I/O.

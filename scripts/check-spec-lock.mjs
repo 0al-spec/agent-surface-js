@@ -9,6 +9,7 @@ const requiredSources = [
   'drafts/modules/authorization.md',
   'drafts/modules/privacy.md',
   'drafts/modules/evidence.md',
+  'drafts/modules/safe-effects.md',
 ];
 if (
   lock.repository !== 'https://github.com/0al-spec/agent-surface' ||
@@ -33,7 +34,7 @@ if (
     requiredSources.length
 ) {
   throw new Error(
-    'Spec lock must contain exactly Core, Authorization, Privacy and Evidence with SHA-256 digests',
+    'Spec lock must contain exactly Core, Authorization, Privacy, Evidence and Safe Effects with SHA-256 digests',
   );
 }
 for (const source of lock.sources) {

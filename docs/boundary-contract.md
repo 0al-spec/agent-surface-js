@@ -53,15 +53,16 @@ All source links in the comparison table below are pinned.
 The table deliberately retains the historical comparison digests. The current
 `spec-lock.json` instead pins `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`, as recorded
 in the [compatibility review](compatibility/user-managed-source-update.md).
-Its checker still requires exactly Core, Authorization, Privacy and Evidence,
-with tests for missing, duplicate, unexpected and corrupted sources. The update
+The [subsequent coverage decision](manifest-contract-decision.md) adds Safe Effects
+at that same revision. Its checker now requires exactly those five modules,
+with tests for missing, duplicate, unexpected and corrupted sources. This coverage
 does not implement new domain contracts. Further revision changes need an
 explicit compatibility decision. The similarly named upstream
 `mocks/v1/manifest.schema.json` describes a mock bundle, not an application
 Agent Surface Manifest; it must not be used as its schema.
 
-The next slice plans to implement explicit `user_managed` handling defined in
-the now-pinned [ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract).
+[Offline declaration validation](data-exposure-values.md) implements explicit
+`user_managed` grammar from the now-pinned [ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract).
 The reviewed source/digest update and hashing regression vectors make the design
 fixture source-aligned, not an accepted runtime contract. Manifest/Grant schema
 validation, exact projection, consent and actual-path enforcement still require
