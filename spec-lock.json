@@ -18,6 +18,10 @@
     {
       "path": "drafts/modules/evidence.md",
       "sha256": "3d533d71233a7f480653b61d70d67b13a87324f78aeb53d5eb27685db0056be6"
+    },
+    {
+      "path": "drafts/modules/safe-effects.md",
+      "sha256": "807dfbf3afd4539df3311ee43ffd37d561fd972045da41b68746896f2303d2e7"
     }
   ]
 }

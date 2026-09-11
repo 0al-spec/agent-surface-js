@@ -4,6 +4,14 @@ Decision: 2026-09-11, SDK PR #4 review follow-up. Preserve the endorsed Hello
 design's `user_managed` declaration and update its normative source baseline;
 do not silently replace it with a strict deletion promise.
 
+Historical scope: the assessment and verification below record the four-module
+revision update in PR #4, not the current source inventory. The subsequent
+[manifest contract decision](../manifest-contract-decision.md) added Safe Effects
+at the same reviewed revision without changing those four digests. The current
+[source lock](../../spec-lock.json) and checker cover exactly Core, Authorization,
+Privacy, Evidence and Safe Effects. Expanded coverage does not imply runtime
+support for those modules.
+
 - Previous revision: `951871c2d55db25d35512f29cc0970c69aa5cfd9`.
 - Reviewed revision: [`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`](https://github.com/0al-spec/agent-surface/commit/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691), merged ASP PR #89.
 - [Complete source diff](https://github.com/0al-spec/agent-surface/compare/951871c2d55db25d35512f29cc0970c69aa5cfd9...b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691).
@@ -18,8 +26,9 @@ do not silently replace it with a strict deletion promise.
 | Privacy | draft.2 → draft.4 | Clarifies provenance/classification and adds the closed `{"mode":"user_managed"}` object, exact projection/consent and conjunction of derived-source obligations. No automatic deletion, training permission or authority waiver. Handling enforcement is not implemented here. |
 | Evidence | draft.2 → draft.3 | Only version/dependency metadata changes. Canonical Object Hash Profile bytes, domains and self-field exclusions are unchanged. Existing hashing behavior/vectors remain applicable. |
 
-Full versions use the `0.1.0-` prefix. Four selected modules remain the source
-coverage for the `asp-jcs-sha-256` implementation; this is not complete dependency
+Full versions use the `0.1.0-` prefix. At the PR #4 checkpoint, four selected
+modules formed the source coverage for the `asp-jcs-sha-256` implementation;
+that historical coverage was not complete dependency
 closure or support for every profile named by those modules.
 
 The historical Calcu comparison in [boundary-contract.md](../boundary-contract.md)
@@ -30,8 +39,9 @@ test retrieval/digest failure behavior, not a compatible Hello manifest.
 
 ## Verification boundary
 
-- The source checker fetches all four modules at the exact reviewed commit and
-  verifies their complete byte digests; CI continues to run it independently.
+- At the PR #4 checkpoint, the source checker fetched all four selected modules
+  at the exact reviewed commit and verified their complete byte digests. CI now
+  verifies all five modules from the current lock, including Safe Effects.
 - [Source compatibility tests](../../tests/source-compatibility.test.ts) reject
   regression to the old lock for this fixture, check independent positive
   manifest/Grant hashing-view vectors and reject reuse of a manifest hash after

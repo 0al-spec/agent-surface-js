@@ -4,7 +4,13 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const { readFile } = vi.hoisted(() => ({ readFile: vi.fn() }));
 vi.mock('node:fs/promises', () => ({ readFile }));
 
-const modules = ['core', 'authorization', 'privacy', 'evidence'];
+const modules = [
+  'core',
+  'authorization',
+  'privacy',
+  'evidence',
+  'safe-effects',
+];
 const fixtures = new Map(
   modules.map((name) => [
     `drafts/modules/${name}.md`,
@@ -102,7 +108,7 @@ it('fetches and verifies every required source regardless of list order', async 
     JSON.stringify({ ...lock, sources: [...sources].reverse() }),
   );
   await import('../scripts/check-spec-lock.mjs');
-  expect(fetch).toHaveBeenCalledTimes(4);
+  expect(fetch).toHaveBeenCalledTimes(5);
   for (const source of sources) {
     expect(fetch).toHaveBeenCalledWith(
       url(source),

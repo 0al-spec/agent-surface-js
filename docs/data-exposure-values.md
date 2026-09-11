@@ -116,7 +116,9 @@ consent and actual-path enforcement are not implemented here.
 
 The executable lock stays at
 [`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`](https://github.com/0al-spec/agent-surface/tree/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691).
-No normative source or lock digest changes in this slice.
+The exposure implementation did not change the revision or its four source
+digests. The [subsequent coverage decision](manifest-contract-decision.md) adds
+Safe Effects at the same revision without changing exposure behavior.
 
 | Pinned requirement | Evidence in this package |
 | --- | --- |
@@ -153,14 +155,15 @@ must not be filled by silently copying a development record into a wire format:
    The strong input-schema hash/self-contained rules in Evidence apply to
    idempotency-required actions, not automatically to every non-persisted
    proposal. An unresolved URI is not a validated schema; no implicit fetch.
-4. **Source completeness.** Full action semantics reference Safe Effects,
-   outside the four currently locked modules. Selected literal checks can be
-   narrower implementation rules; advertising complete action validation needs
-   an explicit source coverage/compatibility decision first.
+4. **Source completeness.** Full action semantics reference Safe Effects. The
+   [coverage decision](manifest-contract-decision.md) now pins it alongside the
+   original four modules. This resolves that source-coverage prerequisite, not
+   the implementation of action semantics.
 
-Recommended next slice: agree the selected non-OAuth issuance declaration and
-offline schema resolution contract, qualify any required source-lock expansion,
-then implement the complete one-action manifest validator. Keep app-chosen IDs;
+The [follow-up decision](manifest-contract-decision.md) selects offline schema
+resources and engine qualification as the next executable slice. The non-OAuth
+issuance binding remains a separate gate before complete manifest acceptance.
+Keep app-chosen IDs;
 Calcu is a fixture/consumer, not a hardcoded SDK protocol. After that, proceed to
 the planned Grant representation and exact exposure projection. No live
 integration, retention probes or protocol amendments are authorized by these
