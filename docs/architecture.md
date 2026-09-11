@@ -35,10 +35,12 @@ does not validate a full manifest or grant authority. Hash equality alone does
 not authenticate a publisher, authorize an action, or prove user intent.
 
 [spec-lock.json](../spec-lock.json) pins ASP revision
-`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691` and verifies Core, Authorization, Privacy
-and Evidence. The [compatibility review](compatibility/user-managed-source-update.md)
+`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691` and verifies Core, Authorization, Privacy,
+Evidence and Safe Effects. The [compatibility review](compatibility/user-managed-source-update.md)
 records the explicit revision update for the Hello fixture's `user_managed`
-grammar. Hashing behavior is unchanged; this does not implement planned
+grammar. The [manifest contract decision](manifest-contract-decision.md) records
+the subsequent addition of Safe Effects at that same revision, without changing
+the original four digests. Hashing behavior is unchanged; this does not implement planned
 manifest/Grant or handling enforcement contracts. Any further source or
 revision change needs explicit compatibility review and validator/tests.
 Do not silently advance the pinned revision or claim that the current lock
