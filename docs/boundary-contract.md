@@ -42,11 +42,12 @@ All source links in the comparison table below are pinned.
 | [Privacy](https://github.com/0al-spec/agent-surface/blob/951871c2d55db25d35512f29cc0970c69aa5cfd9/drafts/modules/privacy.md) | Data Exposure Contract and effective Grant projection | `cbdd129443e9fe29557dc17321db41e1a7e485049b5c6826ed37b9edb63773c9` |
 | [Evidence](https://github.com/0al-spec/agent-surface/blob/951871c2d55db25d35512f29cc0970c69aa5cfd9/drafts/modules/evidence.md) | Canonical Object Hash Profile | `594d71c3972b350dbe21fea6078d301fbbc817470ab3feb07a95bd695ae0b86f` |
 
-These digests document the comparison; they are not an executable compatibility
-gate. The current `spec-lock.json` and checker still cover evidence only. Before
-implementing the new domain objects, extend their required source set and
-negative tests explicitly. Keep the ASP revision unchanged unless a separate
-compatibility decision requires an update. The similarly named upstream
+These comparison digests are also enforced by `spec-lock.json` and its checker:
+exactly Core, Authorization, Privacy and Evidence, with regression tests for
+missing, duplicate, unexpected and corrupted sources. This compatibility-gate
+extension keeps the ASP revision and existing hashing behavior unchanged; it
+does not implement new domain contracts. Further revision changes need an
+explicit compatibility decision. The similarly named upstream
 `mocks/v1/manifest.schema.json` describes a mock bundle, not an application
 Agent Surface Manifest; it must not be used as its schema.
 
@@ -54,8 +55,8 @@ The next slice plans to use the explicit `user_managed` mode defined in the
 [newer ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract),
 not yet in this SDK's executable lock/support. Before accepting it, make an
 explicit compatibility change covering the selected authoritative modules,
-source digests, validators and regression vectors. This planning edit changes
-neither `spec-lock.json` nor existing runtime acceptance. The inventory below
+source digests, validators and regression vectors. Extending coverage at the old
+revision does not accept this newer mode or change runtime acceptance. The inventory below
 remains a historical comparison, not a claim that all gaps still exist in the
 latest Calcu checkout or that the old lock supports the new mode.
 

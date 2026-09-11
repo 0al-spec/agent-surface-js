@@ -35,9 +35,10 @@ does not validate a full manifest or grant authority. Hash equality alone does
 not authenticate a publisher, authorize an action, or prove user intent.
 
 [spec-lock.json](../spec-lock.json) pins ASP revision
-`951871c2d55db25d35512f29cc0970c69aa5cfd9` and currently digests only the evidence
-module. Before implementing additional contracts, explicitly extend the lock's
-source coverage and its validator/tests in a compatibility-reviewed change.
+`951871c2d55db25d35512f29cc0970c69aa5cfd9` and verifies Core, Authorization, Privacy
+and Evidence. This source-coverage extension leaves the revision and runtime
+unchanged; it does not implement the planned contracts. Any further source or
+revision change needs explicit compatibility review and validator/tests.
 Do not silently advance the pinned revision or claim that the current lock
 covers all future components.
 

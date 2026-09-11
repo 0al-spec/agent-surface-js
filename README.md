@@ -37,8 +37,9 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 ## Compatibility and engineering
 
 [spec-lock.json](spec-lock.json) pins the ASP revision used by the original Calcu
-comparison, with the SHA-256 of the upstream evidence module. CI checks that
-source digest in a separate job; local behavior tests use the normative vectors
+comparison, with SHA-256 digests of Core, Authorization, Privacy and Evidence.
+CI requires exactly those sources and verifies each digest in a separate job;
+this source coverage does not implement their contracts. Local behavior tests use normative vectors
 without network access. Lock updates require explicit compatibility review.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
