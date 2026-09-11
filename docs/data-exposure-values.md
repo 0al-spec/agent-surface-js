@@ -91,6 +91,11 @@ Known grammar errors use `invalid_data_classes`, `invalid_data_exposure`, or
 `invalid_manifest_exposure` (missing/wrong inventories or ambiguous source IDs).
 The existing raw boundary codes propagate unchanged: `invalid_json`,
 `duplicate_json_member`, `invalid_json_number`, `invalid_unicode`.
+All `JsonDocument` consumers, including hashing, now reject more than 256 nested
+object/array containers as `json_nesting_limit`. An iterative token scan enforces
+this SDK capacity limit before recursive parsing, without counting delimiters
+inside strings. This closes a stack-exhaustion finding from independent review;
+it is not a new normative ASP restriction or a substitute for transport byte limits.
 Messages contain no input, identifier, path, policy text or secret. These are
 SDK-local diagnostic codes, **not** ASP wire errors. In particular,
 `data_exposure_violation` concerns an actual payload crossing a boundary; these

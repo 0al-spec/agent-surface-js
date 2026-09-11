@@ -29,6 +29,9 @@ non-finite numeric values, and lone surrogates can be rejected before hashing.
 Pass original JSON text: `JSON.stringify()` or an earlier parser can already have
 erased invalid input. Decimal numbers otherwise follow IEEE 754 binary64/JCS;
 no Unicode or array normalization is performed.
+The supported input capacity is 256 nested object/array containers; deeper
+documents fail with `json_nesting_limit` before recursive parsing. This is an
+SDK limit, not an ASP wire restriction. Transport byte limits remain separate.
 
 `CanonicalObjectHash` computes a hash for a caller-selected domain and hashing
 view. The caller is responsible for choosing the correct ASP domain and its
