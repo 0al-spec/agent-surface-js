@@ -2,10 +2,30 @@
 
 Status: design draft, not an implemented API or a conformance claim.
 
+The [first boundary contract](boundary-contract.md) compares Calcu with the pinned
+RFC and defines the next SDK + Calcu vertical slice and its acceptance cases.
+
 The SDK should remove repeated ASP boundary code from applications without
 absorbing their business logic or the agent's internal execution model. Start
-with one Node.js package and one consumer (Calcu); extract demonstrated reuse
-before adding platform abstractions or separate packages.
+with one Node.js package and one consumer (Calcu). Build reusable validated
+behavior in the SDK and adopt it in Calcu incrementally; do not require a full
+handwritten Calcu implementation before SDK work begins.
+
+## Security-first, SDK-assisted adoption
+
+Owner direction recorded 2026-09-11: simplify integration, not ASP guarantees.
+Separate the one-time cost of engineering the security implementation from the
+cost of connecting each application. Calcu is a first integration consumer and
+source of behavioral evidence, not the normative source or a future bulk import.
+
+The [ASP ADP backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
+owns task status, scope approvals and cross-repository ordering; its companion
+SDK-first revision is in [ASP PR #90](https://github.com/0al-spec/agent-surface/pull/90).
+This file owns architecture; [boundary-contract.md](boundary-contract.md) owns
+the selected/planned slice and acceptance cases. Neither is another task tracker. Early
+SDK behavior accompanies ADP-05…07; ADP-09 later stabilizes the public API and
+tests reuse with a second consumer. Plans do not add implemented exports,
+advance the source lock or prove conformance.
 
 ## What exists today
 
@@ -15,9 +35,10 @@ does not validate a full manifest or grant authority. Hash equality alone does
 not authenticate a publisher, authorize an action, or prove user intent.
 
 [spec-lock.json](../spec-lock.json) pins ASP revision
-`951871c2d55db25d35512f29cc0970c69aa5cfd9` and currently digests only the evidence
-module. Before implementing additional contracts, explicitly extend the lock's
-source coverage and its validator/tests in a compatibility-reviewed change.
+`951871c2d55db25d35512f29cc0970c69aa5cfd9` and verifies Core, Authorization, Privacy
+and Evidence. This source-coverage extension leaves the revision and runtime
+unchanged; it does not implement the planned contracts. Any further source or
+revision change needs explicit compatibility review and validator/tests.
 Do not silently advance the pinned revision or claim that the current lock
 covers all future components.
 
@@ -86,7 +107,68 @@ requirement for seven folders or seven npm packages. Existing exports remain
 unchanged. Introduce subpath exports only with working code and import-boundary
 tests; browser safety is not established by naming a folder `core`.
 
+### Modular behavior and host ownership
+
+| Layer | Reusable SDK responsibility | Application/host responsibility |
+| --- | --- | --- |
+| Protocol core | Strict decoding, schemas, canonical values/hashes and immutable bindings | Curated surface declaration and supported profile selection |
+| Security engines | Issuer/admission checks and specified session, revocation and guard state machines | Trusted policy decisions, principal/identity trust configuration and authority custody |
+| Infrastructure adapters | Selected transport, transactional store, clock and key-provider integration | Deployment, store/key ownership and configuration satisfying the selected guarantees |
+| Language/framework integration | Typed declarations, deterministic generation, middleware and UI binding mechanics | Domain metadata, explicit consent decisions and framework composition |
+| Application domain | Narrow contracts for invoking admitted behavior | Business rules, data classification, resource ownership and mutation/effect reconciliation |
+
+Executing SDK issuer/executor behavior inside the app does not transfer the
+app's authority to the library vendor. Runtime and application may reuse code,
+but each boundary must establish its own authoritative inputs, derive its own
+expected bindings, make its own decision and fail closed. Neither may accept
+the other's successful SDK call as proof that its own checks happened; code
+reuse alone is not evidence of independent verification. Application-owned
+storage can use a ready adapter; its security state is not disposable SDK cache.
+
+State adapters must provide the transaction/fencing semantics that the engine
+requires, not just generic `get`/`set`. Define the linearization point between
+authority checks, quota reservation and handler dispatch, and how it composes
+with the application's business transaction. Async checks require revalidation
+at that point. Crash/restart, concurrent revoke/admit and unavailable-store
+tests qualify an adapter. In-memory implementations can support unit tests or
+explicitly bounded experiments, not a profile's mandatory durability guarantee.
+An SDK cannot make an arbitrary external side effect transactional.
+
+### Feature selection without security downgrades
+
+Developers select supported features/profiles, not arbitrary mandatory checks.
+Each supported composition must name its required core behavior, adapters and
+platform capabilities. Reject unsupported combinations or missing dependencies
+at build/configuration/startup where possible; dynamic authority, status and
+revocation are still checked during execution. No silent fallback from required
+durable state to memory, from verified identity to a string, or from strict
+handling to an undeclared policy. Package splitting and tree-shaking do not
+establish security isolation or eliminate an obligation selected by a profile.
+
+### Idiomatic integration, shared enforcement
+
+Future Rust macros, Swift property wrappers/modifiers, Go generation/interfaces
+and TypeScript typed builders/framework hooks are language-specific directions,
+not implemented APIs or required package counts. Generate descriptors, schema
+references, registrations and diagnostics from one validated authoring model
+where useful. Generated declarations still enter the same runtime executor;
+annotations cannot replace admission or prove a handler's advertised effects.
+Native and ASP paths must preserve the same application business invariants.
+
+UI hooks may bind safe preview, request state and cancellation, never issue
+authority in browser code. Keep privileged modules out of client bundles with
+import-boundary tests. Favor composition over inheritance-heavy mixins and
+maintain the EO policy; add each ergonomic wrapper only with a concrete consumer
+and tests against its expanded behavior. Protocol contracts/vectors belong in
+ASP; future language SDKs need idiomatic APIs, not a copy of TypeScript syntax.
+
 ## Invariants before interfaces
+
+The [API design principles](api-design-principles.md) use Foundation Models as
+an ergonomics reference: describe an operation once, compose infrastructure,
+grant authority explicitly. They separate everyday operation authoring from
+trusted host composition, with a conceptual Calcu example. This is not an LLM
+framework dependency, a public API commitment or an additional authorization path.
 
 1. Boundary decoding keeps protocol field names and rejects malformed inputs
    before domain behavior. Preserve caller-owned values. Serialize internally
@@ -118,18 +200,18 @@ small immutable objects and composition. Do not create classes solely to wrap
 each field, use getter/setter DTOs as the domain model, or add `Manager`/`Utils`
 layers. Names and interfaces are finalized with their first behavior tests.
 
-## Calcu extraction map
+## Calcu integration map
 
 The observed baseline is Calcu commit
-`4866de0cd9984d333ba37301dabd911f1ec8c2a2`. These are extraction candidates, not
+`4866de0cd9984d333ba37301dabd911f1ec8c2a2`. These are integration seams, not
 claims that its development implementation is a complete ASP implementation.
 
 | Calcu source | Proposed treatment |
 | --- | --- |
 | `server/hash.ts` | First consumer of canonical hashing; keep byte/artifact hashing separate |
-| `server/executor.ts` | Separate reusable binding/admission/lifecycle from calculator-specific policy and dispatch |
-| `server/localBackend.ts` | Extract request correlation behavior; retain the typed calculation facade in Calcu |
-| `server/transport.ts`, `server/httpsActionServer.ts` | Extract a selected Node transport profile after domain contracts stabilize |
+| `server/executor.ts` | Consume SDK binding/admission/lifecycle behavior; retain app-owned policy, authority store and domain dispatch |
+| `server/localBackend.ts` | Consume SDK request/correlation behavior; retain the typed calculation facade in Calcu |
+| `server/transport.ts`, `server/httpsActionServer.ts` | Adopt a validated Node transport adapter alongside the corresponding domain slice |
 | `server/identity.ts` | Define a verifier interface; keep ephemeral trust fixtures explicitly development-only |
 | `server/calcu.ts` | Keep math, operation schema and domain validation in Calcu |
 | `server/codexAdapter.ts`, `server/taskHost.ts`, task UI | Keep CLI lifecycle, hosting and UX outside the core |
@@ -141,27 +223,33 @@ and renaming it an SDK.
 
 ## Delivery sequence and exit criteria
 
-1. **Consume the foundation in Calcu.** Replace only matching canonical-hash
-   behavior using a reproducibly pinned package artifact. Preserve hash vectors
-   and all existing boundary tests. Do not replace byte hashing with JCS hashing.
-   Acceptance: a real consumer uses the SDK without changing its ASP behavior.
-2. **Specify the first supported boundary contract.** Inventory the exact
-   manifest/Grant/session fields and upstream evidence for Calcu's development
-   profile. Extend source locking explicitly; implement immutable validated
-   objects with positive and negative fixtures. Acceptance: valid hashes with
-   invalid bindings/profile/schema are rejected at the appropriate boundary.
-3. **Extract authority and execution behavior.** Add the issuer/executor and
-   narrowly scoped state/verifier interfaces; first storage is in-memory.
-   Acceptance: rejected admissions make zero handler calls; revocation,
-   generation and concurrent quota tests hold across mediator recreation.
-4. **Extract mediator and Node HTTPS binding.** Keep credentials server-only and
-   preserve transport limits and correlation checks. Acceptance: Calcu round
-   trip plus forged response, timeout, abort and invalid TLS tests pass; document
-   explicitly that a lost response does not prove the action never executed.
-5. **Measure before expanding.** Compare Calcu-specific code, setup steps and
-   test burden before/after extraction. Try a second small consumer before a
-   generic adapter framework. Browser support, additional packages and platforms
-   require demonstrated needs rather than speculative API hooks.
+1. **Contract/value foundation (ADP-05).** Review the expanded source lock and
+   selected upstream revision, then implement immutable manifest/Grant/exposure
+   behavior with positive/negative vectors. Preserve current hashing contracts
+   and consumer regressions; a valid hash with an invalid binding still fails.
+2. **Projection and consent slice (ADP-05/06).** Build issuer-derived exposure
+   and independent runtime validation in SDK; integrate Calcu declarations and
+   trusted policy, exact principal/preview binding and fresh issuance. Invalid
+   consent must block issuance; parsing alone never certifies consent/identity.
+3. **State engine + transactional adapter (ADP-07).** Implement specified
+   session/guard behavior and one concrete store with Calcu integration. Test
+   crash/restart, fencing, lineage/generation, concurrency and unavailable state;
+   a recreated mediator/new session must not reset the governing limits.
+4. **Per-slice boundary evidence (ADP-08).** With each preceding slice test the
+   actual selected HTTPS path, zero handler calls on admission rejection,
+   forged response, invalid TLS, timeout/abort, loss and recovery. No credential
+   reaches model/browser; response rejection after execution is not zero execution.
+5. **Stabilization and measured reuse (ADP-09).** Stabilize only demonstrated
+   interfaces, then test a second small consumer before claiming generality or
+   building a generic adapter framework. Record SDK engineering separately from
+   consumer-specific code, setup, manual security choices and test/migration cost.
+
+ADP-05/06 contract sub-slices can be reviewed together; neither requires the
+other to be fully deployed before pure validation work starts. Each live change
+needs its scoped approval and applicable guarantees. Intermediate passing value
+tests do not enable a full-contract activation while required state, identity,
+consent or durability behavior is absent. Track outcomes in the ASP backlog,
+not as duplicate statuses in this sequence.
 
 Each step is a focused PR, not permission to implement all roles now. Report
 supported behavior and evidence separately from maturity/conformance claims.
