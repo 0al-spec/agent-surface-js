@@ -3,6 +3,14 @@
 Status: design and gap inventory. No new SDK exports, accepted wire objects,
 schema validators, or conformance claims are introduced by this document.
 
+Implementation checkpoint: the [offline exposure declaration sub-slice](data-exposure-values.md)
+now checks Data Exposure grammar and manifest inventory coverage under the
+current source lock. It does **not** close the complete manifest, Grant,
+projection or live integration gaps below. That note also records issuance
+metadata, compatibility, schema resolution and source-coverage decisions found
+necessary before the full manifest implementation. Historical comparisons and
+the planned acceptance matrix below remain qualified as such.
+
 ## Decision
 
 Implement validated binding values in the SDK before issuer/executor behavior,
