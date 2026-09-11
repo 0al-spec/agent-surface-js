@@ -101,6 +101,31 @@ not replace independent runtime and application inputs and decisions. Host
 configuration is not a sandbox: isolate untrusted code outside the privileged
 process. UI hooks expose safe projections/cancellation, never server authority.
 
+### Preferred application-first example
+
+The owner-endorsed
+[Hello composition](../examples/design/hello-composition/README.md) preserves
+the preferred config-first shape: native application, explicit incoming domain
+ports, an application-owned outgoing assistant interface, existing ASP
+manifest/JSON Schemas and one trusted composition root. ASP is an optional
+integration, not the organizing framework of the native application.
+
+`assistant` is a local facade connected to authorized event delivery, not a
+hidden LLM or a reference to the agent's public methods. The composition root
+makes the provider adapter visible and gives it a bounded mediator port, not
+application objects. The [architecture](architecture.md#optional-bidirectional-application-composition)
+records the authority and resource-ownership rules behind the concise wiring.
+
+Adding the example's fixed `app.version` read operation extends a narrow port,
+handler binding and declaration/schema. It does not duplicate agent, transport
+or lifecycle setup. The changed surface still needs the required snapshot/hash
+and fresh authority; less boilerplate does not mean automatic Grant expansion.
+This illustrates a design direction, not a measured general integration cost.
+
+Only the native app and fixture integrity checks run today. Do not add fake SDK
+declarations or exports to make the remaining sketch appear implemented. Exact
+signatures and deployment/provider qualification await the bounded SDK slices.
+
 ## Composition is not mutable authority
 
 Adding a tool or changing a model profile does not extend an ASP Grant. Check a

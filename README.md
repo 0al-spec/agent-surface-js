@@ -36,8 +36,11 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 
 ## Compatibility and engineering
 
-[spec-lock.json](spec-lock.json) pins the ASP revision used by the original Calcu
-comparison, with SHA-256 digests of Core, Authorization, Privacy and Evidence.
+[spec-lock.json](spec-lock.json) pins ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`,
+with SHA-256 digests of Core, Authorization, Privacy and Evidence. The
+[compatibility review](docs/compatibility/user-managed-source-update.md) records
+the update from the original Calcu comparison revision, covering the Hello
+fixture's explicit `user_managed` grammar without adding runtime support.
 CI requires exactly those sources and verifies each digest in a separate job;
 this source coverage does not implement their contracts. Local behavior tests use normative vectors
 without network access. Lock updates require explicit compatibility review.
@@ -61,9 +64,16 @@ developer experience, inspired by Foundation Models ergonomics: one operation
 definition and separate trusted host setup. The Calcu sketches are design-only,
 not runnable SDK examples or new exports.
 
+The [application-first Hello composition](examples/design/hello-composition/README.md)
+preserves the owner-endorsed bidirectional, config-first design: a native app,
+explicit ports and a separately wired agent adapter. Its native behavior is
+tested; the ASP wiring remains an intentionally unconfigured, fictional API
+sketch, excluded from the published package.
+
 The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
 historically inspected Calcu records from the normative requirements and defines
 the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy
-target requires a separate source-lock/compatibility update before implementation.
+target's source revision is now pinned; manifest/Grant validation and actual-path
+handling enforcement remain separate, unimplemented work.
 Task status and cross-repository sequence live only in the
 [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md).
