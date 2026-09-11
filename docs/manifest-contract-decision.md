@@ -6,6 +6,12 @@ The [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/r
 remains the only delivery tracker. No live issuance, Calcu migration, retention
 probe or new authorization path is enabled by this decision.
 
+Implementation follow-up: [offline schema resources](offline-schemas.md) now
+implements the bounded resource/engine sub-slice, with its actual API, supported
+keywords and limits recorded separately. The design below preserves the PR #6
+decision checkpoint. Complete manifest acceptance and native issuance remain
+unimplemented; do not infer completion from schema tests.
+
 ## Decisions
 
 | Area | Decision and remaining limit |
@@ -151,5 +157,7 @@ offline schema work may proceed while complete manifest acceptance stays blocked
 | Complete selected manifest | Reviewed native binding and control fixture, generic IDs, compatibility, required hash, unknown-feature rejection, exposure and schema composition. |
 | Live integration | Separate stateful consent, identity, Grant/session and transport checks; no inference from offline success. |
 
-The current change tests only source-lock verification and records the design.
-Existing passing SDK tests do not mark the future rows above as implemented.
+PR #6 tested only source-lock verification and recorded this design. The
+implementation follow-up qualifies its explicitly supported resource/engine
+subset; it does not mark the complete manifest or live integration rows above
+as implemented.

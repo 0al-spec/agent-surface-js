@@ -13,8 +13,22 @@ export class JsonDocument {
     this.#text = text;
   }
 
+  /** Measures retained source bytes without exposing or reparsing the text. */
+  utf8ByteLength(): number {
+    if (typeof this.#text !== 'string') throw new Error('invalid_json');
+    return Buffer.byteLength(this.#text, 'utf8');
+  }
+
   /** A fresh boundary value on every call; duplicate keys have not been erased. */
-  parse(): unknown {
+  parse(maximumBytes?: number): unknown {
+    if (
+      maximumBytes !== undefined &&
+      (!Number.isSafeInteger(maximumBytes) ||
+        maximumBytes < 0 ||
+        this.utf8ByteLength() > maximumBytes)
+    ) {
+      throw new Error('json_byte_limit');
+    }
     this.#checkNesting();
     const errors: ParseError[] = [];
     const root = parseTree(this.#text, errors, {

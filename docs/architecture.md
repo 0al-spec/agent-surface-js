@@ -34,6 +34,13 @@ input handling and selected canonical hashing behavior. `SurfaceSnapshot.hash()`
 does not validate a full manifest or grant authority. Hash equality alone does
 not authenticate a publisher, authorize an action, or prove user intent.
 
+`DataClassCatalog`, `DataExposure` and `ManifestExposureDeclarations` validate
+[offline exposure declarations](data-exposure-values.md), not live handling.
+`OfflineSchemaResources` adds [bounded offline schema preparation and instance
+validation](offline-schemas.md) through Ajv, with exact resource lookup and
+optional input-schema hash verification. Neither independently completes a
+manifest, Grant or admission decision. Native issuance metadata remains gated.
+
 [spec-lock.json](../spec-lock.json) pins ASP revision
 `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691` and verifies Core, Authorization, Privacy,
 Evidence and Safe Effects. The [compatibility review](compatibility/user-managed-source-update.md)

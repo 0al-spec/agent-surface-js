@@ -11,6 +11,11 @@ metadata, compatibility, schema resolution and source-coverage decisions found
 necessary before the full manifest implementation. Historical comparisons and
 the planned acceptance matrix below remain qualified as such.
 
+The [offline schema sub-slice](offline-schemas.md) additionally prepares explicit
+resources and validates instances within a bounded supported dialect subset.
+It supplies schema mechanics for BC-02, not completion of BC-01/02/04/08 or the
+native issuance binding decision.
+
 ## Decision
 
 Implement validated binding values in the SDK before issuer/executor behavior,
