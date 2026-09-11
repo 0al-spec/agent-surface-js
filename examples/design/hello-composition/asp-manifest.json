@@ -1,0 +1,129 @@
+{
+  "protocol": "agent-surface/0.1",
+  "app_id": "hello.two-styles.offline-example",
+  "issuer": "https://hello.invalid",
+  "surface_mode": "proposal_only",
+  "surface_version": "offline-version-sketch-2026-09-11",
+  "surface_hash": "sha-256:N-Wq3vC9_zchmpsXS4eLND16lNzRyIitlehKMMHXK0I",
+  "surface_url": "https://hello.invalid/.well-known/agent-surface.json",
+  "compatibility": {
+    "min_runtime": "application-runtime/0.1",
+    "schema_dialect": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "auth": {},
+  "agent_api": {
+    "credential_audience": "https://hello.invalid/agent-api",
+    "grant_request_url": "https://hello.invalid/agent-grants/request",
+    "grant_introspection_url": "https://hello.invalid/agent-grants/introspect",
+    "grant_revocation_url": "https://hello.invalid/agent-grants/revoke",
+    "action_url": "https://hello.invalid/agent-actions",
+    "session_control_url": "https://hello.invalid/agent-sessions/control",
+    "event_subscription_url": "https://hello.invalid/agent-events",
+    "event_delivery": {
+      "profile": "at_least_once",
+      "ack_deadline_seconds": 30,
+      "max_in_flight": 8,
+      "retention_seconds": 300
+    }
+  },
+  "scopes": [
+    {
+      "id": "app.info.read",
+      "description": "Read the fixed public application version."
+    },
+    {
+      "id": "greeting.invoke",
+      "description": "Request the fixed greeting workflow and its two proposal actions."
+    }
+  ],
+  "data_classes": [
+    {
+      "id": "app.fixed-public-version",
+      "classification": "public",
+      "label": "Fixed application version",
+      "description": "Only the fixed public application version string 1.0.0."
+    },
+    {
+      "id": "greeting.fixed-public-text",
+      "classification": "public",
+      "label": "Fixed greeting text",
+      "description": "Only the fixed Hello, world! and Goodbye, world! strings; request and event payloads are empty."
+    }
+  ],
+  "resources": [],
+  "actions": [
+    {
+      "id": "app.version",
+      "scope": "app.info.read",
+      "risk": "read",
+      "approval": "none",
+      "side_effect": false,
+      "execution": {
+        "mode": "read",
+        "operation_id": "app.version"
+      },
+      "input_schema": "https://hello.invalid/schemas/empty-object.schema.json",
+      "output_schema": "https://hello.invalid/schemas/version-result.schema.json",
+      "data_exposure": {
+        "classes": ["app.fixed-public-version"],
+        "redaction": { "mode": "none" },
+        "retention": { "mode": "user_managed" }
+      }
+    },
+    {
+      "id": "greeting.goodbye",
+      "scope": "greeting.invoke",
+      "risk": "propose",
+      "approval": "none",
+      "side_effect": false,
+      "execution": {
+        "mode": "propose",
+        "operation_id": "greeting.goodbye",
+        "persisted": false
+      },
+      "input_schema": "https://hello.invalid/schemas/empty-object.schema.json",
+      "output_schema": "https://hello.invalid/schemas/goodbye-result.schema.json",
+      "data_exposure": {
+        "classes": ["greeting.fixed-public-text"],
+        "redaction": { "mode": "none" },
+        "retention": { "mode": "user_managed" }
+      }
+    },
+    {
+      "id": "greeting.propose",
+      "scope": "greeting.invoke",
+      "risk": "propose",
+      "approval": "none",
+      "side_effect": false,
+      "execution": {
+        "mode": "propose",
+        "operation_id": "greeting.propose",
+        "persisted": false
+      },
+      "input_schema": "https://hello.invalid/schemas/empty-object.schema.json",
+      "output_schema": "https://hello.invalid/schemas/hello-result.schema.json",
+      "data_exposure": {
+        "classes": ["greeting.fixed-public-text"],
+        "redaction": { "mode": "none" },
+        "retention": { "mode": "user_managed" }
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "greeting.requested",
+      "scope": "greeting.invoke",
+      "schema": "https://hello.invalid/schemas/empty-object.schema.json",
+      "data_exposure": {
+        "classes": [],
+        "redaction": { "mode": "none" },
+        "retention": { "mode": "user_managed" }
+      }
+    }
+  ],
+  "audit": {},
+  "revocation": {
+    "grant_management_url": "https://hello.invalid/settings/agent-grants",
+    "grant_revocation_url": "https://hello.invalid/agent-grants/revoke"
+  }
+}

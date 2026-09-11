@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hello.invalid/schemas/empty-object.schema.json",
+  "title": "Empty greeting input or event payload",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "additionalProperties": false
+}

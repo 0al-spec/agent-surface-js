@@ -61,6 +61,12 @@ developer experience, inspired by Foundation Models ergonomics: one operation
 definition and separate trusted host setup. The Calcu sketches are design-only,
 not runnable SDK examples or new exports.
 
+The [application-first Hello composition](examples/design/hello-composition/README.md)
+preserves the owner-endorsed bidirectional, config-first design: a native app,
+explicit ports and a separately wired agent adapter. Its native behavior is
+tested; the ASP wiring remains an intentionally unconfigured, fictional API
+sketch, excluded from the published package.
+
 The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
 historically inspected Calcu records from the normative requirements and defines
 the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy

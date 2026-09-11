@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hello.invalid/schemas/goodbye-result.schema.json",
+  "title": "Goodbye result",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "string",
+      "const": "Goodbye, world!"
+    }
+  },
+  "required": ["message"],
+  "additionalProperties": false
+}

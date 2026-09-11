@@ -101,6 +101,54 @@ interfaces, not the other way around. A composition root in the host wires them
 together. Do not build a global registry, service locator or generic plugin
 framework for this first consumer.
 
+### Optional, bidirectional application composition
+
+Owner-endorsed direction, 2026-09-11: the
+[config-first Hello composition](../examples/design/hello-composition/README.md)
+captures roughly 80% of the desired integration experience. That is a design-fit
+assessment, not implementation progress. Preserve this reference while evolving
+the API; names, signatures, package boundaries and deployment details remain
+provisional. It does not change the selected Calcu contract or ADP gates.
+
+The native application remains useful without ASP. It owns private domain
+behavior and deliberately exposes narrow incoming ports to its trusted executor.
+Public methods are not automatically tools. An ordinary ASP manifest and JSON
+Schemas declare the surface; a separate, exact handler map connects action IDs
+to those ports. Configuration is data, not a second DSL or executable handler
+loader. Host setup is shared across operations, not repeated per method.
+
+The application also owns an outgoing interface, `GreetingAssistant` in the
+example. Its implementation is a local facade, not the agent: it asks a bound
+session to deliver an authorized `greeting.requested` event. The runtime requests
+the exact-Grant subscription and decides whether to start work under user/local
+policy. This is not permission for the app to inject content into `session.start`
+or command arbitrary agent methods. An event acknowledgement is not task success.
+
+The real agent integration belongs in an explicit provider adapter, shown as a
+future `CodexAgentAdapter`. The host supplies only a per-work mediator port to
+that adapter. Calls go through the runtime mediator and authenticated transport
+to independent application admission before a handler runs; results return
+through the same boundary. The model/adapter receives neither the application
+object nor authority stores or raw credentials. Executable/model settings do
+not establish identity, consent or authority, and a JS interface is not process
+isolation.
+
+`AdmittedAgentWork` is a proposed opaque result of trusted admission, not a value
+the adapter may create or authorize with a TypeScript cast. Before agent work,
+the runtime rechecks current Grant, exact session generation, tuple, guard/fence
+and cancellation. A bounded access port retains that binding and must be fenced
+on deadline, revocation or close; opening it does not replace the application's
+independent checks on every action. The host enforces deadlines even if an
+adapter does not return. Late results cannot reopen a closed port.
+
+Composition explicitly distinguishes host-owned components from borrowed
+deployment policy, identity and lifecycle stores. Constructors capture values;
+preparation validates dependencies and cleans up partially acquired resources
+on failure. It neither issues a Grant nor starts an agent task. A prepared host
+closes its own resources, never unrelated Grants/sessions or borrowed stores.
+Local disposal is not proof of remote process exit, provider cleanup, rollback
+or task completion; unresolved cleanup/outcomes remain visible.
+
 Candidate internal areas are `json`, `surface`, `authorization`, `execution`,
 `runtime`, `node`, and `testing`. These are organizational suggestions, not a
 requirement for seven folders or seven npm packages. Existing exports remain
