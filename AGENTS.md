@@ -3,6 +3,11 @@
 Read [Elegant Objects policy](docs/engineering/elegant-objects.md) before SDK
 implementation or refactoring. Apply it to tests and reviews as well.
 
+When designing public API or framework integration, read the
+[API design principles](docs/api-design-principles.md). Treat its sketches as
+design guidance, not existing exports; preserve the architecture's authority
+boundaries and qualify ergonomic wrappers with behavior tests.
+
 Identify domain invariants before choosing classes. Keep protocol field names
 unchanged. Constructor bodies only assign dependencies and values; validation
 and I/O run in explicit behavior. Preserve caller-owned inputs.

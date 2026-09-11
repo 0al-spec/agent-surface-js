@@ -163,6 +163,12 @@ ASP; future language SDKs need idiomatic APIs, not a copy of TypeScript syntax.
 
 ## Invariants before interfaces
 
+The [API design principles](api-design-principles.md) use Foundation Models as
+an ergonomics reference: describe an operation once, compose infrastructure,
+grant authority explicitly. They separate everyday operation authoring from
+trusted host composition, with a conceptual Calcu example. This is not an LLM
+framework dependency, a public API commitment or an additional authorization path.
+
 1. Boundary decoding keeps protocol field names and rejects malformed inputs
    before domain behavior. Preserve caller-owned values. Serialize internally
    built, validated values only; serialization cannot recover invalid raw JSON

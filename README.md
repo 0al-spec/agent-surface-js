@@ -55,6 +55,11 @@ Calcu integration map, modular security engines/adapters and idiomatic
 language/framework integration direction. These simplify integration, not
 mandatory guarantees, and describe future roles rather than implemented exports.
 
+[API design principles](docs/api-design-principles.md) describe the intended
+developer experience, inspired by Foundation Models ergonomics: one operation
+definition and separate trusted host setup. The Calcu sketches are design-only,
+not runnable SDK examples or new exports.
+
 The [boundary contract inventory](docs/boundary-contract.md) distinguishes the
 historically inspected Calcu records from the normative requirements and defines
 the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy
