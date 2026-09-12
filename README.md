@@ -53,6 +53,9 @@ native issuance binding gate. This is design, not complete manifest validation.
 The [trusted provisioning decision](docs/trusted-provisioning-decision.md)
 separates app-owned issuance from bearer presentation, with pinned RFC/Calcu
 evidence and the remaining binding decisions before public issuer API work.
+The [Host-Provisioned Bearer proposal](docs/proposals/host-provisioned-bearer.md)
+offers concrete non-OAuth messages for RFC review; they are not implemented or
+accepted by the pinned SDK contract.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
 agents. Value objects use explicit behavior and no constructor I/O.

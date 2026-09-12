@@ -162,3 +162,8 @@ The following cases are **planned**, not executable tests or a conformance repor
 Next decision checkpoint: review the smallest non-OAuth binding proposal that
 closes the concrete metadata, authentication, delivery and revocation gaps above.
 Only after that checkpoint define public SDK signatures and executable fixtures.
+
+The [Host-Provisioned Bearer proposal](proposals/host-provisioned-bearer.md)
+now supplies candidate metadata, private issuance/recovery and self-only HTTPS
+control messages for that review. It is not accepted normative text or an
+implemented binding; its publication alone does not close the gates above.
