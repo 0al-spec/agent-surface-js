@@ -28,6 +28,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
+    "ajv": "8.20.0",
     "canonicalize": "4.0.0",
     "jsonc-parser": "3.3.1"
   },

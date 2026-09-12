@@ -18,7 +18,7 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npm pack --dry-run
-      - run: node --input-type=module -e "import { JsonDocument, SurfaceSnapshot } from '@0al/agent-surface'; if (!new SurfaceSnapshot(new JsonDocument('{}')).hash().startsWith('sha-256:')) process.exit(1)"
+      - run: node scripts/check-package.mjs
   spec-source:
     runs-on: ubuntu-latest
     steps:

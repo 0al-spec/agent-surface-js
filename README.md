@@ -64,6 +64,16 @@ All three retention modes are supported, including the exact closed
 validate auth, profiles, schemas, action semantics or a complete manifest.
 Hashing remains separate; neither operation establishes disclosure authority.
 
+## Offline schema resources
+
+`OfflineSchemaResources` prepares explicit host-supplied JSON Schemas with a
+bounded Draft 2020-12 subset, backed by pinned Ajv. Prepared resources resolve
+exact URI keys; `resolveInput()` additionally checks the ASP input-schema hash.
+Validators accept original `JsonDocument` instances without coercion or defaults.
+There is no automatic fetching or schema-engine options escape hatch. See
+[usage, supported keywords and capacity limits](docs/offline-schemas.md).
+This checks schema content and instances, not a complete manifest or authority.
+
 The package is not published yet. Full manifest validation, Grant/session state,
 admission, browser support and transports remain future behavior. Calcu will
 integrate supported SDK slices incrementally, not implement the complete RFC
