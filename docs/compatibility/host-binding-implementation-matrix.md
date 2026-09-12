@@ -3,7 +3,8 @@
 Status: implementation plan with reviewed source checkpoint, 2026-09-12.
 The [offline proposal representation](../offline-proposal-manifest.md) now
 implements a bounded part of the first two rows. The
-[offline selected Grant](../offline-selected-grant.md) implements the
+[offline semantic Grant request](../offline-semantic-grant-request.md) and
+[offline selected Grant](../offline-selected-grant.md) implement the
 representation-only part of the Grant and exposure rows. This matrix is not a
 runtime conformance claim or Calcu activation record.
 
@@ -41,6 +42,7 @@ it is not the planned complete Grant hashing-view validator.
 | Manifest content and grammar | `JsonDocument`, `SurfaceSnapshot`, partial `ManifestExposureDeclarations` | Validate the complete selected manifest, fixed `auth` discriminator, proposal-only non-persisted Actions, required control metadata and exact audience; reject unsupported features without fallback | App owns operation IDs, business schemas and policy. Two unrelated app fixtures; missing controls, wrong profile, mutable input and freshly rehashed invalid manifests reject. |
 | Schema composition | `OfflineSchemaResources` validates its documented offline subset | Retain exact input/output schema resources and compose their checks with manifest acceptance | Host supplies authenticated immutable inputs. Missing/rebound resources, hash mismatch and unsupported dialect/features reject; no implicit network retrieval. |
 | Discovery and endpoint trust | Not implemented | HTTPS discovery, exact snapshot pinning, issuer-origin endpoint checks and distinct required control routes | Host supplies trust configuration and actual endpoint addresses before hashing. Wrong CA/SAN, redirect, route aliasing and port changes reject. Offline manifest acceptance is not authenticated discovery. |
+| Semantic Grant request | `OfflineSemanticGrantRequest` checks the closed selected request, exact manifest/delegate bindings and `grant-request/v1` hashing view; it derives exposure for later presentation but rejects server outputs | Bind the request to a concrete host-owned Consent Preview and two distinct decisions only after authenticated host adapters exist | Expectations are caller-supplied integrity facts, not authentication. OAuth `type`, subject, Grant fields, credential binding, exposure and raw credentials reject; the value is not an issuance DTO or approved-record capability. |
 | Complete Grant value | `OfflineSelectedGrant` checks a closed single-action Grant, complete hashing view, exact tuple and duplicate identity projection; `credential_profile: "compatibility_bearer"`, method exactly `"bearer"` | Extend only after another selected contract demonstrates need; current value remains representation-only | Issuer supplies independently derived facts. Wrong/missing method rejects even with recomputed hash; no label normalization, abbreviated Grant or credential inside Grant JSON. Shape/hash success does not establish issuance or current authority. |
 | Exposure projection | `OfflineSelectedGrant` derives the selected action and control-event projection from the retained manifest and requires exact ordered equality | Reuse the same derivation independently at issuance/mediation; add other source kinds only with a selected consumer | App owns classifications, redaction and trusted handling policy. Omitted, widened, reordered or rewritten sources reject; validation does not prove handling enforcement or consent. |
 | Identity and consent | Not implemented | Validate exact profile combinations/projections and bind retained request material to both consent decisions | Host authenticates ordinary user and runtime registration; verifier establishes identity/status. Forged subject, task text used as consent, stale identity and changed approved inputs reject. A TypeScript brand is not authentication. |
@@ -92,11 +94,13 @@ its source or implementation is not an automatic consequence of this work.
    with positive and negative fixtures. It stops at representation validation:
    no network, issuance, current authority or Calcu switch. General manifests
    and additional optional features remain unsupported.
-3. **Grant values and projection (ADP-05) — bounded offline slice completed.**
-   `OfflineSelectedGrant` implements the selected hashing view,
-   tuple/method/identity/exposure validation and derivation against a retained
-   prepared manifest. Trusted inputs and tests do not qualify the external
-   verifier, consent UI, issuer state or runtime mediation.
+3. **Semantic request, Grant values and projection (ADP-05) — bounded offline
+   slices completed.** `OfflineSemanticGrantRequest` fixes the selected request
+   hashing view and rejects server outputs. `OfflineSelectedGrant` implements
+   the selected authoritative hashing view, tuple/method/identity/exposure
+   validation and derivation against a retained prepared manifest. Trusted
+   inputs and tests do not qualify the external verifier, consent UI, issuer
+   state or runtime mediation.
 4. **Issuance, controls and lifecycle (ADP-06/07).** Qualify authenticated host
    integration, transaction/authority fences, HTTPS and management/session paths.
    Deliver negative/integration tests with each sub-slice, not only at the end.

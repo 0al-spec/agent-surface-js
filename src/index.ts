@@ -16,4 +16,9 @@ export type {
   PreparedOfflineSelectedGrant,
 } from './offline-selected-grant.js';
 export { OfflineSelectedGrant } from './offline-selected-grant.js';
+export type {
+  OfflineSemanticGrantRequestExpectations,
+  PreparedOfflineSemanticGrantRequest,
+} from './offline-semantic-grant-request.js';
+export { OfflineSemanticGrantRequest } from './offline-semantic-grant-request.js';
 export { SurfaceSnapshot } from './surface-snapshot.js';

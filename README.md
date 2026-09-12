@@ -98,6 +98,18 @@ control declaration. See [API, restrictions and evidence](docs/offline-proposal-
 Offline preparation is not authenticated discovery, identity verification,
 Grant issuance, admission or permission to activate the binding.
 
+## Offline semantic Grant request
+
+`OfflineSemanticGrantRequest` checks the complete candidate-specific semantic
+request for the selected proposal-only profile, computes its ASP
+`grant-request/v1` hash and derives the corresponding Data Exposure projection
+from a genuine prepared manifest. See the
+[supported request contract and limits](docs/offline-semantic-grant-request.md).
+
+The request value is not an issuance message, consent record or approved-request
+capability. It does not authenticate its caller or make the request eligible for
+issuance. Server-derived Grant members are rejected instead of silently removed.
+
 ## Offline selected Grant
 
 `OfflineSelectedGrant` checks one complete, closed Host-Provisioned Bearer Grant
@@ -112,8 +124,8 @@ This is immutable representation and integrity validation. It does not issue a
 Grant or credential, authenticate identity or consent, consult current authority
 state, start a session, admit an action or enforce the declared handling policy.
 
-The package is not published yet. General manifest validation, Grant/session state,
-admission, browser support and transports remain future behavior. Calcu will
+The package is not published yet. General manifest validation, consent/issuance,
+Grant/session state, admission, browser support and transports remain future behavior. Calcu will
 integrate supported SDK slices incrementally, not implement the complete RFC
 first for later extraction. No full ASP conformance or independent interoperability
 is claimed.
