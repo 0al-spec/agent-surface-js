@@ -111,10 +111,32 @@ The record retains these logical inputs (not new Grant wire members):
   natural-language intent verification or an Action Approval Receipt.
 
 Immediately before issuance, recheck authentication, current identity status,
-policy, snapshot and consent binding. Any material change invalidates the record
-and requires a new preview/consent flow; do not edit an approved record in place.
-Only then derive the complete existing Grant Object, including both full
-identity projections, effective data exposure, expiry and its prescribed hash.
+policy, snapshot and consent binding. This recheck is not a separate check-then-
+commit step: the successful issuance linearization point atomically validates
+the authoritative input revisions and their validity deadlines, consumes the
+approved record, and commits the Grant and credential verifier state. All
+relevant authentication/runtime-registration, identity, policy, snapshot/schema
+and consent changes participate in that same serialization or fencing contract.
+Use a serializable transaction or equivalent version/fence validation at commit;
+values checked only before asynchronous work are insufficient.
+
+An external identity/status or policy source requires a qualified contract that
+orders its relevant invalidations against issuance and keeps its accepted
+evidence valid through the commit point. A cached `active` value, recorded
+revision, future expiry or local database transaction alone cannot fence an
+independent source. If that source cannot participate in the required ordering,
+or current validity cannot be established at commit, fail closed without issuing
+a usable Grant or delivering a credential.
+
+Any material change before that point invalidates the approved record and
+requires a new preview/consent flow; do not repair it or retry against changed
+inputs under old consent. Discard any privately prepared credential on failure.
+Changes after successful commit follow the ordinary current-state admission
+and revocation rules; this fence is not a promise of future identity validity.
+
+Derive the complete existing Grant Object from exactly those fenced inputs,
+including both full identity projections, effective data exposure, expiry and
+its prescribed hash.
 Retain that exact complete hashing view for the Grant lifetime and required
 audit-retention period; do not reconstruct a convenience subset on lookup.
 Unknown or unsupported authority-bearing fields fail closed, not by stripping
@@ -255,6 +277,8 @@ These are **specified candidate cases, not passing conformance vectors**:
 | --- | --- |
 | Exact private consent record, active identity, selected complete manifest | One issued Grant and mediator-only credential; no action without normal session/admission |
 | Forged record reference, subject selector, stale consent or identity | No credential or Grant publication; zero handler calls |
+| Pause after initial recheck; change authentication/runtime registration, identity, policy, snapshot/schema or consent before commit | Commit fence rejects each interleaving; no committed usable Grant or delivered credential; no retry under stale consent |
+| External status check completes but its revision is invalidated or freshness expires before commit; source cannot provide ordering | Fail closed at commit; a local transaction or cached positive result does not permit issuance |
 | Concurrent use of one consent record | At most one issuance; no delivery-retry minting |
 | Delivery failure, crash or unavailable authority store | Frozen use; confirmed revocation or fail-closed restart before replacement |
 | Introspection with expired/revoked/unknown/wrong-audience credential | Exactly inactive, no distinguishing identity or ownership details |
