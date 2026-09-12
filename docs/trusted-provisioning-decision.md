@@ -167,3 +167,8 @@ The [Host-Provisioned Bearer proposal](proposals/host-provisioned-bearer.md)
 now supplies candidate metadata, private issuance/recovery and self-only HTTPS
 control messages for that review. It is not accepted normative text or an
 implemented binding; its publication alone does not close the gates above.
+
+The [draft implementation matrix](compatibility/host-binding-implementation-matrix.md)
+tracks the candidate RFC transfer and executable sequence. The evidence above
+remains tied to the existing SDK pin; the candidate does not supersede it until
+the explicit merged-source compatibility checkpoint is completed.

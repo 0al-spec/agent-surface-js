@@ -57,6 +57,10 @@ The [Host-Provisioned Bearer proposal](docs/proposals/host-provisioned-bearer.md
 offers concrete non-OAuth messages for RFC review; they are not implemented or
 accepted by the pinned SDK contract.
 
+The [draft implementation matrix](docs/compatibility/host-binding-implementation-matrix.md)
+maps candidate RFC PR #92 to existing SDK behavior, host dependencies and planned
+tests. It does not advance the source lock or activate the binding.
+
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
 agents. Value objects use explicit behavior and no constructor I/O.
 
