@@ -56,8 +56,10 @@ All source links in the comparison table below are pinned.
 | [Evidence](https://github.com/0al-spec/agent-surface/blob/951871c2d55db25d35512f29cc0970c69aa5cfd9/drafts/modules/evidence.md) | Canonical Object Hash Profile | `594d71c3972b350dbe21fea6078d301fbbc817470ab3feb07a95bd695ae0b86f` |
 
 The table deliberately retains the historical comparison digests. The current
-`spec-lock.json` instead pins `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`, as recorded
-in the [compatibility review](compatibility/user-managed-source-update.md).
+`spec-lock.json` instead pins `da550fde6f8be4ff0c1ded15524afb66c2912287`, as recorded
+in the [Host-Provisioned Bearer compatibility review](compatibility/host-binding-source-update.md).
+The [earlier compatibility review](compatibility/user-managed-source-update.md)
+introduced explicit user-managed retention at `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
 The [subsequent coverage decision](manifest-contract-decision.md) adds Safe Effects
 at that same revision. Its checker now requires exactly those five modules,
 with tests for missing, duplicate, unexpected and corrupted sources. This coverage
@@ -67,7 +69,7 @@ explicit compatibility decision. The similarly named upstream
 Agent Surface Manifest; it must not be used as its schema.
 
 [Offline declaration validation](data-exposure-values.md) implements explicit
-`user_managed` grammar from the now-pinned [ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract).
+`user_managed` grammar from the previously pinned [ASP Privacy revision](https://github.com/0al-spec/agent-surface/blob/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691/drafts/modules/privacy.md#data-exposure-contract), unchanged in the current source update.
 The reviewed source/digest update and hashing regression vectors make the design
 fixture source-aligned, not an accepted runtime contract. Manifest/Grant schema
 validation, exact projection, consent and actual-path enforcement still require

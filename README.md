@@ -39,23 +39,29 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 
 ## Compatibility and engineering
 
-[spec-lock.json](spec-lock.json) pins ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`,
+[spec-lock.json](spec-lock.json) pins ASP `da550fde6f8be4ff0c1ded15524afb66c2912287`,
 with SHA-256 digests of Core, Authorization, Privacy, Evidence and Safe Effects. The
 [compatibility review](docs/compatibility/user-managed-source-update.md) records
-the update from the original Calcu comparison revision, covering the Hello
+the historical update from the original Calcu comparison revision, covering the Hello
 fixture's explicit `user_managed` grammar without adding runtime support.
 CI requires exactly those sources and verifies each digest in a separate job;
 this source coverage does not implement their contracts. Local behavior tests use normative vectors
 without network access. Lock updates require explicit compatibility review.
 The [manifest contract decision](docs/manifest-contract-decision.md) records the
 additive Safe Effects coverage, the implemented offline schema slice, and the still-open
-native issuance binding gate. This is design, not complete manifest validation.
+native issuance implementation gate. This is design, not complete manifest validation.
 The [trusted provisioning decision](docs/trusted-provisioning-decision.md)
 separates app-owned issuance from bearer presentation, with pinned RFC/Calcu
 evidence and the remaining binding decisions before public issuer API work.
 The [Host-Provisioned Bearer proposal](docs/proposals/host-provisioned-bearer.md)
-offers concrete non-OAuth messages for RFC review; they are not implemented or
-accepted by the pinned SDK contract.
+preserves the historical proposal. Its normative successor is now pinned by the
+[Host-Provisioned Bearer compatibility update](docs/compatibility/host-binding-source-update.md);
+the SDK still does not implement that binding.
+
+The [implementation matrix](docs/compatibility/host-binding-implementation-matrix.md)
+maps merged RFC PR #92 to existing SDK behavior, host dependencies and planned
+tests. The source-lock checkpoint is complete; runtime implementation and
+activation are not.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
 agents. Value objects use explicit behavior and no constructor I/O.
