@@ -165,6 +165,7 @@ const KNOWN_RECEIPT_FIELDS = new Set([
 ]);
 
 type JsonRecord = Record<string, unknown>;
+const preparedOfflineProposalValues = new WeakSet<object>();
 
 /**
  * A retained, representation-only view of one selected proposal action.
@@ -251,6 +252,7 @@ export class OfflineProposalManifest {
       eventSchema,
       receiptSchema,
     );
+    preparedOfflineProposalValues.add(retained);
     this.#prepared = retained;
     return retained;
   }
@@ -532,6 +534,21 @@ export class OfflineProposalManifest {
       incompatible();
     return management;
   }
+}
+
+/** Package-internal bridge; deliberately not exported from the package index. */
+export function retainedOfflineProposalDocument(
+  value: PreparedOfflineProposalManifest,
+): JsonDocument {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !preparedOfflineProposalValues.has(value)
+  ) {
+    throw new Error('invalid_manifest_binding');
+  }
+  value.hash();
+  return value.document;
 }
 
 interface SelectedDeclaration {

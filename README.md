@@ -55,8 +55,10 @@ separates app-owned issuance from bearer presentation, with pinned RFC/Calcu
 evidence and the remaining binding decisions before public issuer API work.
 The [Host-Provisioned Bearer proposal](docs/proposals/host-provisioned-bearer.md)
 preserves the historical proposal. Its normative successor is now pinned by the
-[Host-Provisioned Bearer compatibility update](docs/compatibility/host-binding-source-update.md);
-the SDK still does not implement that binding.
+[Host-Provisioned Bearer compatibility update](docs/compatibility/host-binding-source-update.md).
+The SDK implements only the offline selected manifest and Grant value slices of
+that binding; issuance, credentials, current authority and transport are not
+implemented.
 
 The [implementation matrix](docs/compatibility/host-binding-implementation-matrix.md)
 maps merged RFC PR #92 to existing SDK behavior, host dependencies and planned
@@ -95,6 +97,20 @@ non-persisted proposal, one scope, no resources and the selected revocation
 control declaration. See [API, restrictions and evidence](docs/offline-proposal-manifest.md).
 Offline preparation is not authenticated discovery, identity verification,
 Grant issuance, admission or permission to activate the binding.
+
+## Offline selected Grant
+
+`OfflineSelectedGrant` checks one complete, closed Host-Provisioned Bearer Grant
+against an already prepared proposal manifest and independently supplied
+issuer-owned identity facts. It verifies the exact ASP Grant hash, selected
+tuple, action URL, action and scope, duplicate identity projections, bearer
+labels, credential-release denial, base receipt requirements and the
+issuer-derived Data Exposure projection. See the
+[supported contract and limits](docs/offline-selected-grant.md).
+
+This is immutable representation and integrity validation. It does not issue a
+Grant or credential, authenticate identity or consent, consult current authority
+state, start a session, admit an action or enforce the declared handling policy.
 
 The package is not published yet. General manifest validation, Grant/session state,
 admission, browser support and transports remain future behavior. Calcu will
