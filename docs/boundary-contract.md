@@ -1,5 +1,11 @@
 # First SDK + Calcu boundary contract
 
+Current follow-up: [offline proposal manifest](offline-proposal-manifest.md)
+composes bounded declaration, integrity, schema and exposure checks for the
+selected Host-Provisioned Bearer representation. It does not close live
+discovery, issuance, Grant projection or Calcu integration gaps. The historical
+inventory below is not an assertion that its runtime gates have passed.
+
 Status: design and gap inventory. No new SDK exports, accepted wire objects,
 schema validators, or conformance claims are introduced by this document.
 

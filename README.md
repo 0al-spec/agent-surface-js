@@ -86,7 +86,17 @@ There is no automatic fetching or schema-engine options escape hatch. See
 [usage, supported keywords and capacity limits](docs/offline-schemas.md).
 This checks schema content and instances, not a complete manifest or authority.
 
-The package is not published yet. Full manifest validation, Grant/session state,
+## Offline proposal manifest
+
+`OfflineProposalManifest` composes strict JSON, required surface hash, selected
+Host-Provisioned Bearer declaration grammar, exposure and retained schema
+validation. The supported representation is deliberately narrow: one generic
+non-persisted proposal, one scope, no resources and the selected revocation
+control declaration. See [API, restrictions and evidence](docs/offline-proposal-manifest.md).
+Offline preparation is not authenticated discovery, identity verification,
+Grant issuance, admission or permission to activate the binding.
+
+The package is not published yet. General manifest validation, Grant/session state,
 admission, browser support and transports remain future behavior. Calcu will
 integrate supported SDK slices incrementally, not implement the complete RFC
 first for later extraction. No full ASP conformance or independent interoperability
@@ -113,8 +123,8 @@ historically inspected Calcu records from the normative requirements and defines
 the first SDK + Calcu slice's planned acceptance cases. Its newer handling-policy
 target's source revision is now pinned. The
 [exposure declaration sub-slice](docs/data-exposure-values.md) is implemented;
-complete manifest/Grant validation and actual-path handling enforcement remain
-separate, unimplemented work. The normative inventory records the decisions
-needed before a complete non-OAuth manifest validator can be implemented.
+general manifest/Grant validation and actual-path handling enforcement remain
+separate work. The bounded offline proposal representation does not close those
+runtime gates or qualify Calcu's current declaration.
 Task status and cross-repository sequence live only in the
 [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md).
