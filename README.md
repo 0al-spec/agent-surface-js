@@ -48,8 +48,11 @@ CI requires exactly those sources and verifies each digest in a separate job;
 this source coverage does not implement their contracts. Local behavior tests use normative vectors
 without network access. Lock updates require explicit compatibility review.
 The [manifest contract decision](docs/manifest-contract-decision.md) records the
-additive Safe Effects coverage, the next offline schema slice, and the still-open
+additive Safe Effects coverage, the implemented offline schema slice, and the still-open
 native issuance binding gate. This is design, not complete manifest validation.
+The [trusted provisioning decision](docs/trusted-provisioning-decision.md)
+separates app-owned issuance from bearer presentation, with pinned RFC/Calcu
+evidence and the remaining binding decisions before public issuer API work.
 
 [EO policy](docs/engineering/elegant-objects.md) applies to all contributors and
 agents. Value objects use explicit behavior and no constructor I/O.

@@ -126,6 +126,12 @@ new ASP hash profile. See the pinned [Canonical Object Hash Profile](https://git
 
 ## Native issuance metadata: unresolved gate
 
+The [trusted provisioning decision](trusted-provisioning-decision.md) now maps
+the pinned issuance models to Calcu's actual local control path and selects an
+app-owned candidate architecture. It records the missing binding decisions and
+planned rejection cases; it does not qualify a non-OAuth wire binding or close
+this gate.
+
 Compatibility Bearer describes credential presentation, not a complete issuance
 API or permission to omit authentication. Core includes OAuth metadata examples
 and requires enough information to obtain or validate a Grant. Neither provides
