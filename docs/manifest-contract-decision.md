@@ -1,5 +1,10 @@
 # Selected manifest validation: contract and implementation order
 
+Current implementation follow-up: [offline proposal manifest](offline-proposal-manifest.md)
+records the bounded Host-Provisioned Bearer representation slice. The design
+checkpoint below remains historical; live identity, issuance and activation are
+not established by offline acceptance.
+
 This is an implementation design, not an implemented complete manifest validator
 or a new ASP profile. It follows the offline declaration work in SDK PR #5.
 The [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)

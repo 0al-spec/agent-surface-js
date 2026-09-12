@@ -1,8 +1,9 @@
 # Host-Provisioned Bearer: implementation matrix
 
 Status: implementation plan with reviewed source checkpoint, 2026-09-12.
-The source lock is updated; no new export, runtime behavior, conformance claim
-or Calcu activation is delivered here.
+The [offline proposal representation](../offline-proposal-manifest.md) now
+implements a bounded part of the first two rows. This matrix is not a runtime
+conformance claim or Calcu activation record.
 
 ## Reviewed source checkpoint
 
@@ -23,8 +24,9 @@ wire identifiers, packages or public API commitments.
 
 ## Required behavior and ownership
 
-All acceptance cases below are **planned**. Existing helpers establish only
-the bounded behavior listed; they do not establish the complete row.
+Runtime acceptance cases below remain **planned**. The offline follow-up above
+records its implemented subset and tests; it does not establish a complete
+runtime row or close authenticated discovery and host-owned dependencies.
 
 In particular, current `SurfaceSnapshot` checks a supplied hash but permits it
 to be absent. Complete selected-manifest acceptance must require the normative
@@ -83,9 +85,11 @@ its source or implementation is not an automatic consequence of this work.
 1. **Upstream merge and compatibility checkpoint — completed.** Exact source
    pin/digests and coverage are recorded in the compatibility evidence; existing
    hashing/exposure/schema behavior is preserved. No runtime gate is closed.
-2. **Offline selected-manifest slice (ADP-05).** Implement grammar and retained
-   schema/exposure composition with positive and negative fixtures. Stop at
-   representation validation: no network, issuance, current authority or Calcu switch.
+2. **Offline selected-manifest slice (ADP-05).** The linked offline proposal
+   slice implements bounded grammar and retained schema/exposure composition
+   with positive and negative fixtures. It stops at representation validation:
+   no network, issuance, current authority or Calcu switch. General manifests
+   and additional optional features remain unsupported.
 3. **Grant values and projection (ADP-05).** Implement full selected hashing view,
    tuple/method/identity/exposure validation and independently checked derivation.
    Trusted test facts do not qualify the external verifier or consent UI.
