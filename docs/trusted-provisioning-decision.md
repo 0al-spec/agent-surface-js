@@ -7,6 +7,11 @@ or a claim that Calcu conforms. It follows the
 [ADP backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
 continues to own delivery status. No source-lock or normative text changes here.
 
+Historical checkpoint: the gap analysis below uses its original pin. The
+[Host-Provisioned Bearer source update](compatibility/host-binding-source-update.md)
+now pins the merged normative successor and supersedes the unresolved wire
+binding decision, but does not implement issuance or close activation gates.
+
 ## Decision
 
 Keep app-owned issuance and Compatibility Bearer as separate concerns:
@@ -31,7 +36,7 @@ reviewed; only independently bounded value work can proceed without it.
 
 ## Pinned normative evidence
 
-All ASP links below refer to the unchanged source-lock revision
+All ASP links below refer to the historical decision's source-lock revision
 `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
 
 | Existing contract | What it establishes | What it does not establish |
@@ -168,7 +173,7 @@ now supplies candidate metadata, private issuance/recovery and self-only HTTPS
 control messages for that review. It is not accepted normative text or an
 implemented binding; its publication alone does not close the gates above.
 
-The [draft implementation matrix](compatibility/host-binding-implementation-matrix.md)
-tracks the candidate RFC transfer and executable sequence. The evidence above
-remains tied to the existing SDK pin; the candidate does not supersede it until
-the explicit merged-source compatibility checkpoint is completed.
+The [implementation matrix](compatibility/host-binding-implementation-matrix.md)
+tracks the merged RFC and executable sequence. Evidence above remains tied to
+the historical pin; the linked compatibility update records the current source
+checkpoint without rewriting this decision's historical evidence.

@@ -42,13 +42,15 @@ optional input-schema hash verification. Neither independently completes a
 manifest, Grant or admission decision. Native issuance metadata remains gated.
 
 [spec-lock.json](../spec-lock.json) pins ASP revision
-`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691` and verifies Core, Authorization, Privacy,
+`da550fde6f8be4ff0c1ded15524afb66c2912287` and verifies Core, Authorization, Privacy,
 Evidence and Safe Effects. The [compatibility review](compatibility/user-managed-source-update.md)
 records the explicit revision update for the Hello fixture's `user_managed`
 grammar. The [manifest contract decision](manifest-contract-decision.md) records
 the subsequent addition of Safe Effects at that same revision, without changing
 the original four digests. Hashing behavior is unchanged; this does not implement planned
-manifest/Grant or handling enforcement contracts. Any further source or
+manifest/Grant or handling enforcement contracts. The subsequent
+[Host-Provisioned Bearer source update](compatibility/host-binding-source-update.md)
+pins the merged binding without adding its runtime implementation. Any further source or
 revision change needs explicit compatibility review and validator/tests.
 Do not silently advance the pinned revision or claim that the current lock
 covers all future components.

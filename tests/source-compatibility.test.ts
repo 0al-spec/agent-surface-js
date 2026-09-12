@@ -6,43 +6,100 @@ import {
   SurfaceSnapshot,
 } from '../src/index.js';
 
-describe('reviewed user-managed source revision, not runtime support', () => {
-  it('pins the reviewed revision and complete module bytes for the Hello fixture', () => {
+describe('reviewed merged ASP source revision, not runtime support', () => {
+  it('pins the reviewed merged revision and complete module bytes for the Hello fixture', () => {
     const lock = new JsonDocument(
       readFileSync(new URL('../spec-lock.json', import.meta.url), 'utf8'),
     );
     expect(lock.parse()).toEqual({
       repository: 'https://github.com/0al-spec/agent-surface',
-      commit: 'b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691',
+      commit: 'da550fde6f8be4ff0c1ded15524afb66c2912287',
       profile: 'asp-jcs-sha-256',
       sources: [
         {
           path: 'drafts/modules/core.md',
           sha256:
-            '38f8a0f6dc437a3e4b642409fe53c9853fcb62f85897c097936f7114e5ea6131',
+            'ec35cebe1b1fb718d7dc3c4c5b03350dd808e896842c97b165a3bf91f8814659',
         },
         {
           path: 'drafts/modules/authorization.md',
           sha256:
-            '00fdc53ccda7545234668c43cbcbc8d29284ed442063b40747ca725cabfb652c',
+            '463cfad1fb88ae97f2d496a9f61a27589885a7a07b85db1c0612a7a4feb5269d',
         },
         {
           path: 'drafts/modules/privacy.md',
           sha256:
-            'c68a7855134b2b7e054521f57c34da8d1bbd49b2cb0a019ff922117692a85566',
+            '0b7b2021377405de19fd630c93dde64d47564d8b22435b93c42445b62528f011',
         },
         {
           path: 'drafts/modules/evidence.md',
           sha256:
-            '3d533d71233a7f480653b61d70d67b13a87324f78aeb53d5eb27685db0056be6',
+            'f1beadacad07818cc97e6101d167fa67697bc5b96a7a660e43a9e87a828ca2a3',
         },
         {
           path: 'drafts/modules/safe-effects.md',
           sha256:
-            '807dfbf3afd4539df3311ee43ffd37d561fd972045da41b68746896f2303d2e7',
+            '8d6566cd5864d64db5cff802b501a14b27965d74887eeab8461adf877183209e',
         },
       ],
     });
+  });
+});
+
+// Host-binding source-compatibility fragments only: these are not complete
+// operational manifests or Grants and provide no issuer/authority qualification.
+// Goldens are independently derived from ASCII-only strings/objects with
+// sorted compact JSON, SHA-256 and unpadded base64url over { domain, object }.
+const manifestAuthDescriptor = {
+  type: 'https://github.com/0al-spec/agent-surface/profiles/host-provisioned-bearer/v1',
+  credential_profile: 'compatibility_bearer',
+};
+const grantCredentialBinding = {
+  credential_profile: 'compatibility_bearer',
+  credential_binding: { method: 'bearer' },
+};
+const manifestAuthHash = 'sha-256:BqSx3apwR59H6V7R5_0_JRuxv7BzmNGwPHY7TtVg5uo';
+const grantCredentialBindingHash =
+  'sha-256:FOxmVDnMoyPkD3Pme1ZwLf0idzV-ffvttmvB1WwXVDo';
+const manifestHashDomain =
+  'https://github.com/0al-spec/agent-surface/hash/manifest/v1';
+const grantHashDomain =
+  'https://github.com/0al-spec/agent-surface/hash/grant/v1';
+
+function json(value: unknown): JsonDocument {
+  return new JsonDocument(JSON.stringify(value));
+}
+
+describe('host-provisioned bearer hashing fragments, not operational validation', () => {
+  it('matches independently derived manifest auth-descriptor and Grant binding goldens', () => {
+    expect(
+      new CanonicalObjectHash(manifestHashDomain).digest(
+        json(manifestAuthDescriptor),
+      ),
+    ).toBe(manifestAuthHash);
+    expect(
+      new CanonicalObjectHash(grantHashDomain).digest(
+        json(grantCredentialBinding),
+      ),
+    ).toBe(grantCredentialBindingHash);
+  });
+
+  it.each([
+    ['compatibility_bearer', { method: 'compatibility_bearer' }],
+    ['Bearer', { method: 'Bearer' }],
+    ['omitted', {}],
+  ])('changes the Grant fragment digest for %s without semantic rejection', (_label, credentialBinding) => {
+    // Generic CanonicalObjectHash can hash these invalid/missing methods;
+    // this characterization does not provide a Grant validator.
+    const changed = {
+      ...grantCredentialBinding,
+      credential_binding: credentialBinding,
+    };
+    let digest: string | undefined;
+    expect(() => {
+      digest = new CanonicalObjectHash(grantHashDomain).digest(json(changed));
+    }).not.toThrow();
+    expect(digest).not.toBe(grantCredentialBindingHash);
   });
 });
 

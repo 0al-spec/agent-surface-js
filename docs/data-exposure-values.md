@@ -114,11 +114,14 @@ consent and actual-path enforcement are not implemented here.
 
 ## Source and tests
 
-The executable lock stays at
+The original exposure implementation was qualified at
 [`b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`](https://github.com/0al-spec/agent-surface/tree/b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691).
 The exposure implementation did not change the revision or its four source
 digests. The [subsequent coverage decision](manifest-contract-decision.md) adds
 Safe Effects at the same revision without changing exposure behavior.
+The [current source update](compatibility/host-binding-source-update.md) advances
+the pin to merged Host-Provisioned Bearer text; exposure grammar and these
+historical requirement links remain unchanged.
 
 | Pinned requirement | Evidence in this package |
 | --- | --- |

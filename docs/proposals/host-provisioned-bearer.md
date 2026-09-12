@@ -1,8 +1,11 @@
 # Proposal: Host-Provisioned Bearer Binding
 
-Status: **unaccepted proposal for RFC review**, 2026-09-12. Nothing here is an
-implemented SDK API, registered profile, accepted manifest, or conformance
-claim. The baseline remains ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
+Status: **historical proposal, superseded by merged RFC PR #92**, 2026-09-12.
+Use the [source compatibility update](../compatibility/host-binding-source-update.md)
+and its exact normative links, including the required `bearer` method, for new
+implementation. This proposal is not itself normative text, an implemented SDK
+API, an accepted manifest or a conformance claim. Its historical baseline was
+ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
 This document supplies concrete choices for the
 [trusted provisioning decision](../trusted-provisioning-decision.md), not a
 second backlog. Merging this proposal does not close that decision's gates.

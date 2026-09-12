@@ -1,21 +1,21 @@
 # Host-Provisioned Bearer: implementation matrix
 
-Status: draft implementation plan, 2026-09-12. No source-lock update, new export,
-runtime behavior, conformance claim or Calcu activation is delivered here.
+Status: implementation plan with reviewed source checkpoint, 2026-09-12.
+The source lock is updated; no new export, runtime behavior, conformance claim
+or Calcu activation is delivered here.
 
-## Two separate baselines
+## Reviewed source checkpoint
 
-- The SDK still uses [spec-lock.json](../../spec-lock.json) at
-  `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
-- This plan reviews candidate ASP [PR #92](https://github.com/0al-spec/agent-surface/pull/92),
-  exact commit [`ea3b2160fd5edab4b7d7d18abd4f098b46088351`](https://github.com/0al-spec/agent-surface/commit/ea3b2160fd5edab4b7d7d18abd4f098b46088351).
-  At preparation, its required CI was pending. Candidate links below are not
-  the SDK's normative pin or permission to implement an unreviewed fallback.
+- Previous SDK pin: `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
+- Current [spec-lock.json](../../spec-lock.json):
+  `da550fde6f8be4ff0c1ded15524afb66c2912287`, merged
+  [ASP PR #92](https://github.com/0al-spec/agent-surface/pull/92).
+- The [compatibility evidence](host-binding-source-update.md) records the
+  full five-source review, exact digests and unchanged implemented behavior.
+  The reviewed candidate `ea3b2160fd5edab4b7d7d18abd4f098b46088351`
+  has identical module bytes to the merge commit.
 
-Before advancing the lock: confirm upstream merge, review the actual merged
-revision against this candidate and the current pin, record compatibility and
-exact source digests, and run source-lock and behavior regression tests. Do not
-merely replace the commit string or make tests accept whichever revision is current.
+This completes the source checkpoint, not any planned implementation row below.
 
 The [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
 owns ADP status. Row labels below are local planning references, not new tasks,
@@ -46,15 +46,15 @@ it is not the planned complete Grant hashing-view validator.
 | Revocation and user management | Not implemented | Self-only termination, exact retry/unconfirmed state, lineage fence and retained mapping lifecycle | App owns ordinary-user authentication and management UI; adapter supplies durable transition. Expired bearer is termination-only; 204 follows confirmed fencing, not queued cleanup; cross-user selectors and unavailable lookup fail safely. |
 | Session, admission and base role obligations | Not implemented | Session generations/current-state admission, applicable budgets, audit, base receipts and control-event mechanics | Host/storage adapters enforce lifecycle and recovery. Revoke/identity races, restart and cancellation tests; rejected admission has zero handler calls. Proposal-only does not waive required role dependencies. |
 
-Candidate source anchors:
+Pinned source anchors:
 
-- [Core authentication descriptor](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/core.md#host-provisioned-bearer-authentication-descriptor).
-- [Binding and exact credential method](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-binding).
-- [Private issuance and consent](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-private-issuance-and-consent).
-- [Control transport](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-control-transport),
-  [self-validation](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-self-validation),
-  [revocation/management](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-self-revocation)
-  and [qualification cases](https://github.com/0al-spec/agent-surface/blob/ea3b2160fd5edab4b7d7d18abd4f098b46088351/drafts/modules/authorization.md#host-provisioned-bearer-qualification-requirements).
+- [Core authentication descriptor](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/core.md#host-provisioned-bearer-authentication-descriptor).
+- [Binding and exact credential method](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-binding).
+- [Private issuance and consent](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-private-issuance-and-consent).
+- [Control transport](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-control-transport),
+  [self-validation](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-self-validation),
+  [revocation/management](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-self-revocation)
+  and [qualification cases](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-qualification-requirements).
 
 The control-transport subinventory includes exact POST `{}`, one Bearer header,
 strict I-JSON/media type, no browser Origin/CORS/redirect, 1 KiB request body,
@@ -80,9 +80,9 @@ its source or implementation is not an automatic consequence of this work.
 
 ## Delivery sequence and stopping points
 
-1. **Upstream merge and compatibility checkpoint.** Update the exact source pin,
-   digests and reviewed coverage; preserve hashing/exposure/schema regressions.
-   Until then this matrix remains draft and the old source lock stays authoritative.
+1. **Upstream merge and compatibility checkpoint — completed.** Exact source
+   pin/digests and coverage are recorded in the compatibility evidence; existing
+   hashing/exposure/schema behavior is preserved. No runtime gate is closed.
 2. **Offline selected-manifest slice (ADP-05).** Implement grammar and retained
    schema/exposure composition with positive and negative fixtures. Stop at
    representation validation: no network, issuance, current authority or Calcu switch.

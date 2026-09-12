@@ -12,6 +12,11 @@ keywords and limits recorded separately. The design below preserves the PR #6
 decision checkpoint. Complete manifest acceptance and native issuance remain
 unimplemented; do not infer completion from schema tests.
 
+The [Host-Provisioned Bearer source update](compatibility/host-binding-source-update.md)
+supersedes the historical unresolved binding/source-pin checkpoint below.
+The merged binding is now selected as the implementation target; complete
+manifest validation, issuance and live qualification remain unimplemented.
+
 ## Decisions
 
 | Area | Decision and remaining limit |
