@@ -686,6 +686,15 @@ function httpsUrl(value: unknown, requirePath: boolean): URL {
     /%(?![0-9A-Fa-f]{2})/.test(text)
   )
     incompatible();
+  // URL.pathname preserves escaped unreserved characters, although their
+  // literal spellings are URI-equivalent. Reject rather than rewrite hashed
+  // declarations so the later distinct-path check cannot miss such aliases.
+  for (const encoded of text.match(/%[0-9A-Fa-f]{2}/g) ?? []) {
+    const character = String.fromCharCode(
+      Number.parseInt(encoded.slice(1), 16),
+    );
+    if (/^[A-Za-z0-9._~-]$/.test(character)) incompatible();
+  }
   let parsed: URL;
   try {
     parsed = new URL(text);

@@ -102,7 +102,12 @@ audit field names, and positive delivery values at most 1,000,000. The existing
 set. No extra resources bypass schema preparation just because they are unused.
 
 Endpoint spellings must be canonical absolute HTTPS URLs without userinfo,
-query, fragment, backslash or URL-normalizing syntax. Selected routes must
+query, fragment, backslash or URL-normalizing syntax. Percent escapes for
+unreserved ASCII characters (letters, digits, `-`, `.`, `_`, `~`) are rejected
+in either hexadecimal case: those spellings are equivalent to literal
+characters but `URL.pathname` preserves their escapes. The validator rejects
+these aliases instead of rewriting the retained, hash-bound declaration.
+Selected routes must
 belong to the issuer origin and use distinct paths; the two revocation members
 are the deliberate exception. The logical audience is supplied independently
 and cannot alias a selected route in this subset. Static checks cannot detect

@@ -264,6 +264,55 @@ function checker(
 
 describe('bounded offline selected proposal manifest', () => {
   it.each([
+    ['agent_api', 'action_url', '/agent-%65vents'],
+    ['agent_api', 'session_control_url', '/agent-%61ctions'],
+    ['agent_api', 'event_subscription_url', '/agent-%61ctions'],
+    ['agent_api', 'grant_introspection_url', '/agent-%61ctions'],
+    ['revocation', 'grant_management_url', '/agent-%61ctions'],
+    ['agent_api', 'credential_audience', '/agent-%61ctions'],
+    ['', 'surface_url', '/agent-%61ctions'],
+  ])('rejects unreserved escape alias in %s.%s', (container, key, path) => {
+    const fixture = buildFixture(
+      'https://alpha.example.invalid',
+      'alpha.propose',
+      'alpha.scope',
+    );
+    const document = changed(fixture, (manifest) => {
+      const target =
+        container === ''
+          ? manifest
+          : (manifest[container] as Record<string, unknown>);
+      target[key] = `https://alpha.example.invalid${path}`;
+    });
+    expect(new SurfaceSnapshot(document).hash()).toBe(
+      parsed(document).surface_hash,
+    );
+    expect(() =>
+      checker(document, fixture.resources, fixture.identity).prepare(),
+    ).toThrow(/^surface_incompatible$/);
+  });
+
+  it('rejects all escaped unreserved characters in both hexadecimal cases', () => {
+    const fixture = buildFixture(
+      'https://alpha.example.invalid',
+      'alpha.propose',
+      'alpha.scope',
+    );
+    for (const character of 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~') {
+      const hex = character.charCodeAt(0).toString(16);
+      for (const escaped of new Set([hex.toLowerCase(), hex.toUpperCase()])) {
+        const document = changed(fixture, (manifest) => {
+          (manifest.agent_api as Record<string, unknown>).action_url =
+            `https://alpha.example.invalid/path-%${escaped}`;
+        });
+        expect(() =>
+          checker(document, fixture.resources, fixture.identity).prepare(),
+        ).toThrow(/^surface_incompatible$/);
+      }
+    }
+  });
+
+  it.each([
     '/agent-grants/introspect',
     '/agent-grants/revoke',
     '/agent-actions',
