@@ -515,7 +515,7 @@ function profileInAdvertisement(value: unknown, advertised: unknown): void {
 function rfc3339(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const match =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.exec(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/i.exec(
       value,
     );
   if (match === null) return false;
@@ -535,7 +535,8 @@ function rfc3339(value: unknown): boolean {
   const hourValue = Number(hour);
   const minuteValue = Number(minute);
   const secondValue = Number(second);
-  const zoneMatch = zone === 'Z' ? null : /[+-](\d{2}):(\d{2})/.exec(zone);
+  const zoneMatch =
+    zone.toUpperCase() === 'Z' ? null : /[+-](\d{2}):(\d{2})/.exec(zone);
   if (
     monthValue < 1 ||
     monthValue > 12 ||
@@ -600,7 +601,14 @@ function exactText(value: unknown, expected: string): void {
 }
 
 function isDigest(value: unknown): value is string {
-  return typeof value === 'string' && /^sha-256:[A-Za-z0-9_-]{43}$/.test(value);
+  // For 32-byte SHA-256 values, the final unpadded base64url character has
+  // two zero pad bits and therefore must have an alphabet index divisible by
+  // four. Reject alternate spellings instead of accepting a noncanonical
+  // encoding of the same digest bytes.
+  return (
+    typeof value === 'string' &&
+    /^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value)
+  );
 }
 
 function incompatible(): never {

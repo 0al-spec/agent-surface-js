@@ -401,6 +401,19 @@ describe('bounded offline selected Grant', () => {
     ).toThrow(/^grant_incompatible$/);
   });
 
+  it('rejects noncanonical base64url identity digests even when all copies agree', () => {
+    const value = fixture(
+      'https://digest.example.invalid',
+      'digest.propose',
+      'digest.scope',
+    );
+    const noncanonicalDigest = `sha-256:${'A'.repeat(42)}B`;
+    (value.evidence.artifact_digest as RecordValue).value = noncanonicalDigest;
+    (value.evidence.key_binding as RecordValue).value = noncanonicalDigest;
+
+    expect(() => candidate(value).prepare()).toThrow(/^grant_incompatible$/);
+  });
+
   it.each([
     [
       'app_id',
@@ -575,6 +588,17 @@ describe('bounded offline selected Grant', () => {
         expectations(value),
       ).prepare(),
     ).toThrow(/^grant_constraints_invalid$/);
+
+    expect(() =>
+      new OfflineSelectedGrant(
+        changedGrant(value, (grant) => {
+          (grant.constraints as RecordValue).expires_at =
+            '2000-01-01t00:00:00z';
+        }),
+        preparedManifest(value),
+        expectations(value),
+      ).prepare(),
+    ).not.toThrow();
 
     expect(() =>
       new OfflineSelectedGrant(
