@@ -11,4 +11,9 @@ export type {
   PreparedSchemaResources,
 } from './offline-schema-resources.js';
 export { OfflineSchemaResources } from './offline-schema-resources.js';
+export type {
+  OfflineSelectedGrantExpectations,
+  PreparedOfflineSelectedGrant,
+} from './offline-selected-grant.js';
+export { OfflineSelectedGrant } from './offline-selected-grant.js';
 export { SurfaceSnapshot } from './surface-snapshot.js';
