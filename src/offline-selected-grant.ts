@@ -1,14 +1,21 @@
 import { CanonicalObjectHash } from './canonical-object-hash.js';
 import { JsonDocument } from './json-document.js';
+import type { PreparedOfflineProposalManifest } from './offline-proposal-manifest.js';
 import {
-  type PreparedOfflineProposalManifest,
-  retainedOfflineProposalDocument,
-} from './offline-proposal-manifest.js';
+  deepFreeze,
+  identityAdvertisement,
+  manifestAction,
+  manifestApi,
+  manifestScope,
+  projectExposure,
+  retainedProposalManifest,
+  rfc3339,
+  structurallyEqual,
+  validateIdentityEvidence,
+} from './offline-proposal-semantics.js';
 
 const ASP = 'https://github.com/0al-spec/agent-surface/';
 const GRANT_HASH_DOMAIN = `${ASP}hash/grant/v1`;
-const IDENTITY_PROFILE = `${ASP}profiles/agent-identity-evidence/v1`;
-const PASSPORT_FORMAT_PROFILE = `${ASP}profiles/agent-passport-minimal/v1`;
 
 const MAX_GRANT_BYTES = 256 * 1024;
 const MAX_IDENTIFIER_UNITS = 256;
@@ -30,19 +37,7 @@ const GRANT_FIELDS = [
   'audit',
 ] as const;
 
-const IDENTITY_FIELDS = [
-  'profile',
-  'format_profile',
-  'artifact_digest',
-  'issuer',
-  'subject',
-  'verification_profile',
-  'key_binding',
-  'lifecycle',
-] as const;
-
 type JsonRecord = Record<string, unknown>;
-type SourceKind = 'resource' | 'action' | 'event';
 
 /** Issuer-owned facts against which a selected Grant is checked. */
 export interface OfflineSelectedGrantExpectations {
@@ -114,16 +109,16 @@ export class OfflineSelectedGrant {
     if (supplied !== computed) throw new Error('grant_hash_mismatch');
 
     const manifest = this.#manifestDocument();
-    const identityAdvertisement = this.#identityAdvertisement(manifest);
+    const identityAdvertisementValue = identityAdvertisement(manifest);
     const expectedIdentity = record(
       this.#identityEvidence.parse(MAX_GRANT_BYTES),
     );
-    validateIdentityEvidence(expectedIdentity, identityAdvertisement);
+    validateIdentityEvidence(expectedIdentity, identityAdvertisementValue);
 
     const projection = this.#validateGrant(
       grant,
       manifest,
-      identityAdvertisement,
+      identityAdvertisementValue,
       expectedIdentity,
     );
     const retained = new RetainedOfflineSelectedGrant(
@@ -151,37 +146,11 @@ export class OfflineSelectedGrant {
   }
 
   #manifestDocument(): JsonRecord {
-    // The package-internal bridge accepts only a successfully prepared view
-    // from OfflineProposalManifest and rechecks its retained source hash.
-    const document = retainedOfflineProposalDocument(this.#manifest);
-    const manifest = record(document.parse(MAX_GRANT_BYTES));
-    if (manifest.surface_hash !== this.#manifest.surfaceHash)
-      throw new Error('manifest_binding_mismatch');
-    return manifest;
-  }
-
-  #identityAdvertisement(manifest: JsonRecord): JsonRecord {
-    const compatibility = fields(manifest.compatibility, [
-      'min_runtime',
-      'schema_dialect',
-      'agent_identity_evidence_profiles',
-    ]);
-    const profiles = boundedArray(
-      compatibility.agent_identity_evidence_profiles,
-      'grant_manifest_binding',
+    return retainedProposalManifest(
+      this.#manifest,
+      MAX_GRANT_BYTES,
+      'manifest_binding_mismatch',
     );
-    if (profiles.length !== 1) throw new Error('grant_manifest_binding');
-    return fields(profiles[0], [
-      'profile',
-      'format_profile',
-      'artifact_digest_profile',
-      'verification_profiles',
-      'key_binding_profiles',
-      'freshness_profiles',
-      'status_profiles',
-      'migration_profiles',
-      'max_artifact_bytes',
-    ]);
   }
 
   #validateGrant(
@@ -234,17 +203,9 @@ export class OfflineSelectedGrant {
     )
       throw new Error('grant_binding_mismatch');
 
-    const action = this.#manifestAction(manifest);
-    const scope = this.#manifestScope(manifest);
-    const api = fields(manifest.agent_api, [
-      'credential_audience',
-      'grant_introspection_url',
-      'grant_revocation_url',
-      'action_url',
-      'session_control_url',
-      'event_subscription_url',
-      'event_delivery',
-    ]);
+    const action = manifestAction(manifest, this.#manifest.actionId);
+    const scope = manifestScope(manifest);
+    const api = manifestApi(manifest);
     const audience = identifier(
       api.credential_audience,
       'grant_manifest_binding',
@@ -294,40 +255,6 @@ export class OfflineSelectedGrant {
     if (!structurallyEqual(receivedProjection, projection))
       throw new Error('grant_data_exposure_mismatch');
     return projection;
-  }
-
-  #manifestAction(
-    manifest: JsonRecord,
-  ): JsonRecord & { id: string; scope: string } {
-    const actions = boundedArray(manifest.actions, 'grant_manifest_binding');
-    if (actions.length !== 1) throw new Error('grant_manifest_binding');
-    const action = fields(actions[0], [
-      'id',
-      'scope',
-      'risk',
-      'side_effect',
-      'approval',
-      'execution',
-      'input_schema',
-      'input_schema_hash',
-      'output_schema',
-      'data_exposure',
-    ]);
-    const id = identifier(action.id, 'grant_manifest_binding');
-    if (id !== this.#manifest.actionId)
-      throw new Error('grant_manifest_binding');
-    return {
-      ...action,
-      id,
-      scope: identifier(action.scope, 'grant_manifest_binding'),
-    };
-  }
-
-  #manifestScope(manifest: JsonRecord): { id: string } {
-    const scopes = boundedArray(manifest.scopes, 'grant_manifest_binding');
-    if (scopes.length !== 1) throw new Error('grant_manifest_binding');
-    const scope = fields(scopes[0], ['id', 'description']);
-    return { id: identifier(scope.id, 'grant_manifest_binding') };
   }
 
   #exactSingletonList(value: unknown, expected: unknown, name: string): void {
@@ -391,173 +318,6 @@ function grantHash(grant: JsonRecord): string {
   );
 }
 
-function projectExposure(
-  manifest: JsonRecord,
-  selectedAction: string,
-  selectedScope: string,
-): JsonRecord[] {
-  const sources: Array<{
-    kind: SourceKind;
-    id: string;
-    exposure: unknown;
-  }> = [];
-  const add = (kind: SourceKind, value: unknown): void => {
-    const source = record(value);
-    const id = identifier(source.id, 'grant_manifest_binding');
-    if (!Object.hasOwn(source, 'data_exposure'))
-      throw new Error('grant_manifest_binding');
-    sources.push({ kind, id, exposure: source.data_exposure });
-  };
-
-  for (const resource of boundedArray(
-    manifest.resources,
-    'grant_manifest_binding',
-  )) {
-    const source = record(resource);
-    if (!Object.hasOwn(source, 'id') || !Object.hasOwn(source, 'data_exposure'))
-      throw new Error('grant_manifest_binding');
-    if (source.read_scope === selectedScope) add('resource', source);
-  }
-  for (const action of boundedArray(
-    manifest.actions,
-    'grant_manifest_binding',
-  )) {
-    const source = record(action);
-    if (source.id === selectedAction) add('action', source);
-  }
-  for (const event of boundedArray(manifest.events, 'grant_manifest_binding')) {
-    const source = fields(
-      event,
-      ['id', 'data_exposure'],
-      ['scope', 'control', 'schema'],
-    );
-    if (
-      source.control === true ||
-      (source.control !== true && source.scope === selectedScope)
-    )
-      add('event', source);
-  }
-
-  sources.sort((left, right) => {
-    const kindOrder: Record<SourceKind, number> = {
-      resource: 0,
-      action: 1,
-      event: 2,
-    };
-    const byKind = kindOrder[left.kind] - kindOrder[right.kind];
-    return byKind === 0 ? compareCodePoints(left.id, right.id) : byKind;
-  });
-
-  const seen = new Set<string>();
-  return sources.map(({ kind, id, exposure }) => {
-    const key = `${kind}\u0000${id}`;
-    if (seen.has(key)) throw new Error('grant_manifest_binding');
-    seen.add(key);
-    return {
-      source: { kind, id },
-      ...cloneRecord(exposure),
-    };
-  });
-}
-
-function validateIdentityEvidence(
-  value: JsonRecord,
-  advertisement: JsonRecord,
-): void {
-  const evidence = fields(value, IDENTITY_FIELDS, ['artifact_ref']);
-  exactText(evidence.profile, IDENTITY_PROFILE);
-  exactText(evidence.format_profile, PASSPORT_FORMAT_PROFILE);
-
-  const digest = fields(evidence.artifact_digest, ['profile', 'value']);
-  exactText(digest.profile, advertisement.artifact_digest_profile as string);
-  if (!isDigest(digest.value)) incompatible();
-
-  identifier(evidence.issuer, 'grant_identity_invalid');
-  identifier(evidence.subject, 'grant_identity_invalid');
-  profileInAdvertisement(
-    evidence.verification_profile,
-    advertisement.verification_profiles,
-  );
-
-  const keyBinding = fields(evidence.key_binding, ['profile', 'value']);
-  profileInAdvertisement(
-    keyBinding.profile,
-    advertisement.key_binding_profiles,
-  );
-  if (!isDigest(keyBinding.value)) incompatible();
-
-  const lifecycle = fields(evidence.lifecycle, [
-    'freshness_profile',
-    'status_profile',
-    'status_ref',
-  ]);
-  profileInAdvertisement(
-    lifecycle.freshness_profile,
-    advertisement.freshness_profiles,
-  );
-  profileInAdvertisement(
-    lifecycle.status_profile,
-    advertisement.status_profiles,
-  );
-  identifier(lifecycle.status_ref, 'grant_identity_invalid');
-  if (Object.hasOwn(evidence, 'artifact_ref'))
-    identifier(evidence.artifact_ref, 'grant_identity_invalid');
-}
-
-function profileInAdvertisement(value: unknown, advertised: unknown): void {
-  const profile = identifier(value, 'grant_identity_invalid');
-  const profiles = boundedArray(advertised, 'grant_identity_invalid');
-  if (profiles.some((candidate) => typeof candidate !== 'string'))
-    throw new Error('grant_identity_invalid');
-  if (!profiles.includes(profile)) throw new Error('grant_identity_mismatch');
-}
-
-function rfc3339(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
-  const match =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/i.exec(
-      value,
-    );
-  if (match === null) return false;
-  const [, year, month, day, hour, minute, second, , zone] = match;
-  if (
-    year === undefined ||
-    month === undefined ||
-    day === undefined ||
-    hour === undefined ||
-    minute === undefined ||
-    second === undefined ||
-    zone === undefined
-  )
-    return false;
-  const monthValue = Number(month);
-  const dayValue = Number(day);
-  const hourValue = Number(hour);
-  const minuteValue = Number(minute);
-  const secondValue = Number(second);
-  const zoneMatch =
-    zone.toUpperCase() === 'Z' ? null : /[+-](\d{2}):(\d{2})/.exec(zone);
-  if (
-    monthValue < 1 ||
-    monthValue > 12 ||
-    dayValue < 1 ||
-    dayValue > daysInMonth(Number(year), monthValue) ||
-    hourValue > 23 ||
-    minuteValue > 59 ||
-    secondValue > 59 ||
-    (zoneMatch !== null &&
-      (Number(zoneMatch[1]) > 23 || Number(zoneMatch[2]) > 59))
-  )
-    return false;
-  // This intentionally checks representation only. An expired timestamp is
-  // valid here; trusted clock and authority state belong to later behavior.
-  return Number.isFinite(Date.parse(value));
-}
-
-function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
 function record(value: unknown): JsonRecord {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     incompatible();
@@ -613,63 +373,4 @@ function isDigest(value: unknown): value is string {
 
 function incompatible(): never {
   throw new Error('grant_incompatible');
-}
-
-function structurallyEqual(left: unknown, right: unknown): boolean {
-  if (Object.is(left, right)) return true;
-  if (Array.isArray(left) || Array.isArray(right)) {
-    if (!Array.isArray(left) || !Array.isArray(right)) return false;
-    return (
-      left.length === right.length &&
-      left.every((value, index) => structurallyEqual(value, right[index]))
-    );
-  }
-  if (
-    typeof left !== 'object' ||
-    left === null ||
-    typeof right !== 'object' ||
-    right === null
-  )
-    return false;
-  const leftRecord = left as JsonRecord;
-  const rightRecord = right as JsonRecord;
-  const leftKeys = Object.keys(leftRecord);
-  const rightKeys = Object.keys(rightRecord);
-  if (leftKeys.length !== rightKeys.length) return false;
-  return leftKeys.every(
-    (key) =>
-      Object.hasOwn(rightRecord, key) &&
-      structurallyEqual(leftRecord[key], rightRecord[key]),
-  );
-}
-
-function compareCodePoints(left: string, right: string): number {
-  const a = Array.from(left, (character) => character.codePointAt(0) ?? 0);
-  const b = Array.from(right, (character) => character.codePointAt(0) ?? 0);
-  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
-    if (a[index] !== b[index]) return (a[index] ?? 0) - (b[index] ?? 0);
-  }
-  return a.length - b.length;
-}
-
-function cloneRecord(value: unknown): JsonRecord {
-  const source = record(value);
-  const clone: JsonRecord = {};
-  for (const [key, member] of Object.entries(source)) {
-    clone[key] = cloneValue(member);
-  }
-  return clone;
-}
-
-function cloneValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((member) => cloneValue(member));
-  if (typeof value === 'object' && value !== null) return cloneRecord(value);
-  return value;
-}
-
-function deepFreeze<T>(value: T): T {
-  if (typeof value !== 'object' || value === null) return value;
-  Object.freeze(value);
-  for (const member of Object.values(value as object)) deepFreeze(member);
-  return value;
 }
