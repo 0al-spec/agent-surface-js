@@ -1,0 +1,9 @@
+{
+  "name": "@0al/example-hello-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --test",
+    "run": "node app.mjs"
+  }
+}
