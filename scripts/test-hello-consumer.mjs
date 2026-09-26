@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const example = join(root, 'examples/consumers/hello');
 const temporary = mkdtempSync(join(tmpdir(), 'asp-hello-consumer-'));
-const consumer = join(temporary, 'consumer');
+const consumer = join(temporary, 'consumer with spaces');
 
 function run(command, args, cwd) {
   const environment = { ...process.env };
@@ -50,7 +50,10 @@ try {
   const tarball = join(temporary, packed[0].filename);
   run('npm', ['install', '--no-audit', '--no-fund', tarball], consumer);
   process.stdout.write(run('npm', ['run', 'check'], consumer));
-  process.stdout.write(run('npm', ['run', 'run'], consumer));
+  const greeting = run('node', ['app.mjs'], consumer);
+  if (greeting !== 'Hello, world!\n')
+    throw new Error('consumer_greeting_output_mismatch');
+  process.stdout.write(greeting);
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }
