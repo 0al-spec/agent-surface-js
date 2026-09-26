@@ -23,9 +23,10 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "biome check . && tsc --noEmit && vitest run",
+    "check": "biome check . && tsc --noEmit && vitest run && npm run test:hello-consumer",
     "test": "vitest run",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test:hello-consumer": "node scripts/test-hello-consumer.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0",
