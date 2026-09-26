@@ -48,11 +48,7 @@ try {
     throw new Error('consumer_package_artifact_missing');
 
   const tarball = join(temporary, packed[0].filename);
-  run(
-    'npm',
-    ['install', '--offline', '--no-audit', '--no-fund', tarball],
-    consumer,
-  );
+  run('npm', ['install', '--no-audit', '--no-fund', tarball], consumer);
   process.stdout.write(run('npm', ['run', 'check'], consumer));
   process.stdout.write(run('npm', ['run', 'run'], consumer));
 } finally {
