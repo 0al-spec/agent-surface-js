@@ -1,0 +1,27 @@
+{
+  "name": "@0al/offline-action-authoring-prototype",
+  "version": "0.0.0-prototype",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./consumers/hello": {
+      "types": "./dist/consumers/hello.d.ts",
+      "import": "./dist/consumers/hello.js"
+    },
+    "./consumers/calcu": {
+      "types": "./dist/consumers/calcu.d.ts",
+      "import": "./dist/consumers/calcu.js"
+    }
+  },
+  "peerDependencies": {
+    "@0al/agent-surface": "0.1.0-experimental.0",
+    "@sinclair/typebox": "0.34.52"
+  }
+}

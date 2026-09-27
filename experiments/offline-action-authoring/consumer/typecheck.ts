@@ -1,0 +1,37 @@
+import { JsonDocument } from '@0al/agent-surface';
+import {
+  OfflineActionCatalog,
+  OfflineActionDefinition,
+} from '@0al/offline-action-authoring-prototype';
+import { Type } from '@sinclair/typebox';
+
+const input = Type.Object({}, { additionalProperties: false, required: [] });
+const output = Type.Object(
+  { greeting: Type.Literal('Hello, world!') },
+  { additionalProperties: false },
+);
+
+const greeting = new OfflineActionDefinition({
+  action: {
+    id: 'greeting.propose',
+    scope: 'greeting.invoke',
+    risk: 'propose',
+    side_effect: false,
+    approval: 'none',
+    execution: {
+      mode: 'propose',
+      operation_id: 'greeting.propose',
+      persisted: false,
+    },
+    data_exposure: {
+      classes: ['hello.public-text'],
+      redaction: { mode: 'none' },
+      retention: { mode: 'user_managed' },
+    },
+  },
+  input,
+  output,
+  handler: () => ({ greeting: 'Hello, world!' as const }),
+});
+
+new OfflineActionCatalog(new JsonDocument('[]'), [greeting]);

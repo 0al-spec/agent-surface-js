@@ -1,0 +1,8 @@
+{
+  "name": "offline-action-authoring-consumer-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node check.mjs"
+  }
+}
