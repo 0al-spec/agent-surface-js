@@ -223,6 +223,38 @@ maintain the EO policy; add each ergonomic wrapper only with a concrete consumer
 and tests against its expanded behavior. Protocol contracts/vectors belong in
 ASP; future language SDKs need idiomatic APIs, not a copy of TypeScript syntax.
 
+### Future direction: optional TypeScript UI add-on (not sequenced)
+
+A separate, opt-in UI package may eventually reduce repeated work for consent
+previews, action/request state, and safe Grant/identity-evidence cards. The base
+SDK must remain usable without a browser or UI framework. Do not select React,
+a component catalog, or a package split until more than one live consumer
+demonstrates the same need; a framework-neutral view model or headless helpers
+may be a better first boundary than prebuilt widgets.
+
+The UI may render a **trusted host's safe projection** of the exact proposed
+action, relevant data exposure, selected agent/runtime identity status,
+constraints and lifecycle state. It must distinguish `pending`, `approved`,
+`denied`, `expired`, `revoked` and `unavailable` rather than reducing them to a
+boolean. A Passport's presence is not authorization; verification status and
+freshness must come from the selected trust verifier, not from a card parsing
+the artifact. A Grant card is a view, not a source of authority.
+
+Any user decision is sent to the trusted host, which must bind it to the current
+preview and independently enforce freshness, policy and issuance rules. UI
+components must not issue Grants or receipts, choose additional actions/scopes,
+hold bearer credentials, or treat model output or a client-side `approved` flag
+as consent evidence. Privileged host modules must remain outside browser bundles.
+
+Do not implement this direction until the host exposes a stable, non-secret
+projection and exact-preview consent contract, and at least two distinct live
+consumers demonstrate repeated UI behavior. Qualification must include stale or
+changed preview rejection, unavailable/expired/revoked identity and Grant
+states, accessibility, and browser/server import-boundary tests. This records a
+future product direction, not an implementation commitment, public API or task
+sequencing change; current consent/authority status and ASP delivery ordering
+remain owned by their existing contracts and backlog.
+
 ## Invariants before interfaces
 
 The [API design principles](api-design-principles.md) use Foundation Models as
