@@ -12,8 +12,15 @@ import type { Static, TSchema } from '@sinclair/typebox';
 const ASP = 'https://github.com/0al-spec/agent-surface/';
 const SCHEMA_DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 const INPUT_SCHEMA_HASH_DOMAIN = `${ASP}hash/action-input-schema/v1`;
+const MAX_SNAPSHOT_VALUES = 4_096;
+const MAX_SNAPSHOT_DEPTH = 64;
+const MAX_SNAPSHOT_TEXT_UNITS = 1_000_000;
+const MAX_SCHEMA_NODES = 1_024;
+const MAX_SCHEMA_DEPTH = 64;
+const MAX_UNION_MEMBERS = 32;
 
 type JsonRecord = Record<string, unknown>;
+const INVALID_SNAPSHOT = Symbol('invalid_snapshot');
 
 interface RuntimeActionDefinition {
   id(): string;
@@ -82,27 +89,40 @@ export class OfflineActionDefinition<
   InputSchema extends TSchema,
   OutputSchema extends TSchema,
 > {
-  readonly #definition: ActionDefinitionInput<InputSchema, OutputSchema>;
+  readonly #definition:
+    | ActionDefinitionInput<InputSchema, OutputSchema>
+    | undefined;
 
   constructor(definition: ActionDefinitionInput<InputSchema, OutputSchema>) {
-    this.#definition = definition;
+    // Capture only own data properties. Accessors, cycles and unsupported object
+    // shapes are retained as an invalid marker and rejected by prepare().
+    try {
+      this.#definition = snapshotDeclaration(
+        definition,
+      ) as ActionDefinitionInput<InputSchema, OutputSchema>;
+    } catch {
+      this.#definition = undefined;
+    }
   }
 
   id(): string {
-    return this.#definition.action.id;
+    return this.#definition?.action?.id ?? '';
   }
 
   prepare(schemaBaseUri: string): PreparedActionFragment {
     const definition = this.#definition;
+    if (definition === undefined) throw new Error('invalid_action_definition');
     validateDefinition(definition);
-    validateSchemaShape(definition.input);
-    validateSchemaShape(definition.output);
+    const inputSchema = lowerSupportedUnions(definition.input);
+    const outputSchema = lowerSupportedUnions(definition.output);
+    validateSchemaShape(inputSchema);
+    validateSchemaShape(outputSchema);
 
     const base = validatedBaseUri(schemaBaseUri);
     const inputUri = schemaUri(base, definition.action.id, 'input');
     const outputUri = schemaUri(base, definition.action.id, 'output');
-    const inputDocument = schemaDocument(inputUri, definition.input);
-    const outputDocument = schemaDocument(outputUri, definition.output);
+    const inputDocument = schemaDocument(inputUri, inputSchema);
+    const outputDocument = schemaDocument(outputUri, outputSchema);
     const inputSchemaHash = new CanonicalObjectHash(
       INPUT_SCHEMA_HASH_DOMAIN,
     ).digest(inputDocument);
@@ -290,6 +310,163 @@ function validateSchemaShape(schema: TSchema): void {
   if (Object.hasOwn(root, '$schema') || Object.hasOwn(root, '$id'))
     throw new Error('unsupported_action_schema_metadata');
   validateNestedObjects(root);
+}
+
+/** Snapshot plain declaration/schema data without invoking accessors. */
+function snapshotDeclaration<T>(value: T): T {
+  const active = new WeakSet<object>();
+  const root = value;
+  let values = 0;
+  let textUnits = 0;
+  const visit = (current: unknown, isHandler = false, depth = 0): unknown => {
+    if (++values > MAX_SNAPSHOT_VALUES || depth > MAX_SNAPSHOT_DEPTH)
+      throw INVALID_SNAPSHOT;
+    if (typeof current === 'string') {
+      textUnits += current.length;
+      if (textUnits > MAX_SNAPSHOT_TEXT_UNITS) throw INVALID_SNAPSHOT;
+    }
+    if (current === undefined) throw INVALID_SNAPSHOT;
+    if (current === null || typeof current !== 'object') {
+      if (typeof current === 'function' && isHandler) return current;
+      if (typeof current === 'function') throw INVALID_SNAPSHOT;
+      if (typeof current === 'symbol' || typeof current === 'bigint')
+        throw INVALID_SNAPSHOT;
+      return current;
+    }
+    if (active.has(current)) throw INVALID_SNAPSHOT;
+    if (!Array.isArray(current)) {
+      const prototype = Object.getPrototypeOf(current);
+      if (prototype !== Object.prototype && prototype !== null)
+        throw INVALID_SNAPSHOT;
+    } else if (current.length > MAX_SNAPSHOT_VALUES - values) {
+      throw INVALID_SNAPSHOT;
+    }
+    const copy: object = Array.isArray(current)
+      ? new Array(current.length)
+      : Object.create(Object.getPrototypeOf(current));
+    active.add(current);
+    const keys = Reflect.ownKeys(current);
+    if (keys.length > MAX_SNAPSHOT_VALUES - values) throw INVALID_SNAPSHOT;
+    for (const key of keys) {
+      if (Array.isArray(current) && key === 'length') continue;
+      if (typeof key === 'string') {
+        textUnits += key.length;
+        if (textUnits > MAX_SNAPSHOT_TEXT_UNITS) throw INVALID_SNAPSHOT;
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(current, key);
+      if (descriptor === undefined || !('value' in descriptor))
+        throw INVALID_SNAPSHOT;
+      Object.defineProperty(copy, key, {
+        value: visit(
+          descriptor.value,
+          current === root && key === 'handler',
+          depth + 1,
+        ),
+        enumerable: descriptor.enumerable ?? false,
+        writable: true,
+        configurable: true,
+      });
+    }
+    active.delete(current);
+    return copy;
+  };
+  return visit(value) as T;
+}
+
+/** Lower only plain TypeBox string-literal unions to the bounded JSON Schema dialect. */
+function lowerSupportedUnions(schema: TSchema): TSchema {
+  let expandedNodes = 0;
+  const visitMap = (value: unknown, depth: number): unknown => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value))
+      return value;
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        visit(child, depth + 1),
+      ]),
+    );
+  };
+  const visit = (value: unknown, depth = 0): unknown => {
+    if (++expandedNodes > MAX_SCHEMA_NODES || depth > MAX_SCHEMA_DEPTH)
+      throw new Error('action_schema_complexity_exceeded');
+    if (Array.isArray(value))
+      return value.map((child) => visit(child, depth + 1));
+    if (typeof value !== 'object' || value === null) return value;
+    const record = value as JsonRecord;
+    if (
+      Object.hasOwn(record, 'anyOf') &&
+      Reflect.get(record, Symbol.for('TypeBox.Kind')) === 'Union'
+    ) {
+      const keys = Object.keys(record);
+      if (
+        Reflect.ownKeys(record).some(
+          (key) =>
+            typeof key === 'symbol' && key !== Symbol.for('TypeBox.Kind'),
+        )
+      )
+        throw new Error('unsupported_action_union_metadata');
+      if (keys.some((key) => !['anyOf', 'type'].includes(key)))
+        throw new Error('unsupported_action_union_metadata');
+      if (
+        (record.type !== undefined && record.type !== 'string') ||
+        !Array.isArray(record.anyOf) ||
+        record.anyOf.length > MAX_UNION_MEMBERS
+      )
+        throw new Error('unsupported_action_union');
+      const values: string[] = [];
+      for (const member of record.anyOf) {
+        if (
+          typeof member !== 'object' ||
+          member === null ||
+          Array.isArray(member)
+        )
+          throw new Error('unsupported_action_union_member');
+        const literal = member as JsonRecord;
+        const memberKeys = Object.keys(literal);
+        if (
+          Reflect.ownKeys(literal).some(
+            (key) =>
+              typeof key === 'symbol' && key !== Symbol.for('TypeBox.Kind'),
+          ) ||
+          Reflect.get(literal, Symbol.for('TypeBox.Kind')) !== 'Literal'
+        )
+          throw new Error('unsupported_action_union_member');
+        if (
+          memberKeys.some((key) => !['const', 'type'].includes(key)) ||
+          member.type !== 'string' ||
+          typeof literal.const !== 'string' ||
+          memberKeys.length !== 2 ||
+          values.includes(literal.const)
+        )
+          throw new Error('unsupported_action_union_member');
+        values.push(literal.const);
+      }
+      if (values.length < 2) throw new Error('unsupported_action_union');
+      return { type: 'string', enum: values };
+    }
+    const copy: JsonRecord = {};
+    for (const key of Reflect.ownKeys(record)) {
+      const descriptor = Object.getOwnPropertyDescriptor(record, key);
+      if (descriptor === undefined || !('value' in descriptor))
+        throw new Error('invalid_action_schema');
+      Object.defineProperty(copy, key, {
+        value: (() => {
+          if (key === 'properties' || key === '$defs')
+            return visitMap(descriptor.value, depth + 1);
+          if (key === 'items' || key === 'additionalProperties')
+            return visit(descriptor.value, depth + 1);
+          if (key === 'prefixItems' && Array.isArray(descriptor.value))
+            return descriptor.value.map((child) => visit(child, depth + 1));
+          return descriptor.value;
+        })(),
+        enumerable: descriptor.enumerable ?? false,
+        writable: true,
+        configurable: true,
+      });
+    }
+    return copy;
+  };
+  return visit(schema) as TSchema;
 }
 
 function validateNestedObjects(value: unknown): void {

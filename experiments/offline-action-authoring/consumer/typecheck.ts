@@ -3,7 +3,10 @@ import {
   OfflineActionCatalog,
   OfflineActionDefinition,
 } from '@0al/offline-action-authoring-prototype';
-import { prepareCalcu } from '@0al/offline-action-authoring-prototype/consumers/calcu';
+import {
+  type CalculationInput,
+  prepareCalcu,
+} from '@0al/offline-action-authoring-prototype/consumers/calcu';
 import { Type } from '@sinclair/typebox';
 
 const input = Type.Object({}, { additionalProperties: false, required: [] });
@@ -39,3 +42,21 @@ new OfflineActionCatalog(new JsonDocument('[]'), [greeting]);
 prepareCalcu(() => {
   throw new Error('offline preparation must not execute application logic');
 });
+
+const validCalculationInput: CalculationInput = {
+  operator: 'multiply',
+  left: 2,
+  right: 3,
+};
+void validCalculationInput;
+
+const invalidCalculationInput: CalculationInput = {
+  // @ts-expect-error inferred operator union excludes unsupported values
+  operator: 'sqrt',
+  left: 2,
+  right: 3,
+};
+void invalidCalculationInput;
+
+// @ts-expect-error handler results must match the inferred output schema
+prepareCalcu(() => ({ operator: 'add', left: 1, right: 2, result: 'wrong' }));

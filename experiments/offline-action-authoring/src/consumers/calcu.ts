@@ -2,12 +2,12 @@ import { JsonDocument } from '@0al/agent-surface';
 import { type Static, Type } from '@sinclair/typebox';
 import { OfflineActionCatalog, OfflineActionDefinition } from '../index.js';
 
-const operators = ['add', 'subtract', 'multiply', 'divide'] as const;
-type Operator = (typeof operators)[number];
-const operatorSchema = Type.Unsafe<Operator>({
-  type: 'string',
-  enum: [...operators],
-});
+const operatorSchema = Type.Union([
+  Type.Literal('add'),
+  Type.Literal('subtract'),
+  Type.Literal('multiply'),
+  Type.Literal('divide'),
+]);
 const calculationFields = {
   operator: operatorSchema,
   left: Type.Number(),

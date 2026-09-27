@@ -116,6 +116,10 @@ assert.deepEqual(
   removeRedundantType(withoutSchemaIdentity(calcuInput)),
   baselineCalcuInput,
 );
+assert.deepEqual(calcuInput.properties.operator, {
+  type: 'string',
+  enum: ['add', 'subtract', 'multiply', 'divide'],
+});
 assert.deepEqual(
   removeRedundantType(withoutSchemaIdentity(calcuOutput)),
   baselineCalcuOutput,
@@ -154,6 +158,23 @@ assert.equal(
   new CanonicalObjectHash(
     'https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1',
   ).digest(new JsonDocument(JSON.stringify(calcuInput))),
+);
+const priorUnsafeInput = {
+  ...calcuInput,
+  properties: {
+    ...calcuInput.properties,
+    operator: {
+      type: 'string',
+      enum: ['add', 'subtract', 'multiply', 'divide'],
+    },
+  },
+};
+assert.equal(
+  calculation.input_schema_hash,
+  new CanonicalObjectHash(
+    'https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1',
+  ).digest(new JsonDocument(JSON.stringify(priorUnsafeInput))),
+  'literal-union lowering preserves the former Unsafe enum schema and hash',
 );
 const calcuBaselineUri =
   'https://calcu.local/schemas/calculation.propose.input.json';
@@ -324,6 +345,194 @@ assert.throws(
       }),
     ]).prepare('https://invalid.example/schemas/'),
   /action_schema_must_be_closed_object/,
+);
+
+// Declaration data and handler identity are captured before the first prepare.
+const sourceOperator = Type.Union([
+  Type.Literal('add'),
+  Type.Literal('subtract'),
+  Type.Literal('multiply'),
+  Type.Literal('divide'),
+]);
+const sourceNestedInput = Type.Object(
+  {
+    nested: Type.Object(
+      { value: Type.String() },
+      { additionalProperties: false },
+    ),
+    operator: sourceOperator,
+  },
+  { additionalProperties: false },
+);
+const sourceAction = JSON.parse(JSON.stringify(base.action));
+let sourceHandlerCalls = 0;
+const sourceHandler = () => {
+  sourceHandlerCalls += 1;
+  return { result: 'original' };
+};
+const sourceDefinition = {
+  ...base,
+  action: sourceAction,
+  input: sourceNestedInput,
+  handler: sourceHandler,
+};
+const snapshot = new OfflineActionDefinition(sourceDefinition);
+sourceAction.id = 'changed.after.construction';
+sourceAction.execution.operation_id = 'changed.operation';
+sourceAction.data_exposure.classes[0] = 'changed.class';
+sourceAction.data_exposure.redaction.mode = 'policy';
+sourceAction.data_exposure.retention.mode = 'bounded';
+sourceNestedInput.properties.nested.properties.value.type = 'number';
+sourceNestedInput.required.push('injected');
+sourceOperator.anyOf[0].const = 'sqrt';
+sourceDefinition.handler = () => ({ result: 'replacement' });
+const snapshotCatalog = new OfflineActionCatalog(classes, [snapshot]);
+const captured = snapshotCatalog.prepare('https://snapshot.example/schemas/');
+const capturedAction = captured.actionDocuments[0].parse();
+assert.equal(capturedAction.id, 'calculation.propose');
+assert.equal(
+  capturedAction.execution.operation_id,
+  'calculation.propose.operation',
+);
+assert.deepEqual(capturedAction.data_exposure.classes, ['application.result']);
+assert.deepEqual(capturedAction.data_exposure.redaction, { mode: 'none' });
+assert.deepEqual(capturedAction.data_exposure.retention, {
+  mode: 'user_managed',
+});
+assert.equal(sourceHandlerCalls, 0);
+const capturedInput = captured.schemaResources
+  .find(({ uri }) => uri === capturedAction.input_schema)
+  .document.parse();
+assert.deepEqual(capturedInput.properties.nested.properties.value, {
+  type: 'string',
+});
+assert.deepEqual(capturedInput.required, ['nested', 'operator']);
+assert.deepEqual(capturedInput.properties.operator, {
+  type: 'string',
+  enum: ['add', 'subtract', 'multiply', 'divide'],
+});
+assert.equal(Object.isFrozen(sourceAction), false);
+assert.equal(Object.isFrozen(sourceAction.execution), false);
+assert.equal(Object.isFrozen(sourceAction.data_exposure.classes), false);
+assert.equal(Object.isFrozen(sourceNestedInput), false);
+sourceAction.scope = 'changed.after.prepare';
+sourceNestedInput.properties.nested.properties.value.type = 'boolean';
+sourceOperator.anyOf[1].const = 'power';
+assert.equal(captured.actionDocuments[0].parse().scope, 'calculation.propose');
+assert.deepEqual(capturedInput.properties.nested.properties.value, {
+  type: 'string',
+});
+assert.deepEqual(capturedInput.properties.operator.enum, [
+  'add',
+  'subtract',
+  'multiply',
+  'divide',
+]);
+
+let getterCalls = 0;
+const accessorAction = Object.defineProperty({}, 'id', {
+  enumerable: true,
+  get() {
+    getterCalls += 1;
+    return 'getter.action';
+  },
+});
+const accessorDefinition = { ...base, action: accessorAction };
+const accessorSnapshot = new OfflineActionDefinition(accessorDefinition);
+assert.equal(getterCalls, 0);
+assert.throws(
+  () =>
+    new OfflineActionCatalog(classes, [accessorSnapshot]).prepare(
+      'https://accessor.example/schemas/',
+    ),
+  /invalid_action_definition/,
+);
+assert.equal(getterCalls, 0);
+
+const annotatedUnion = Type.Union([Type.Literal('x'), Type.Literal('y')]);
+annotatedUnion.anyOf[1].description = 'must not be dropped';
+for (const unsupportedUnion of [
+  Type.Union([Type.Literal('x'), Type.Number()]),
+  Type.Union([Type.String(), Type.Literal('x')]),
+  Type.Union([Type.Literal('x'), Type.Literal('x')]),
+  Type.Union([Type.Literal('x'), Type.Literal('y')], { title: 'annotated' }),
+  annotatedUnion,
+]) {
+  assert.throws(
+    () =>
+      new OfflineActionCatalog(classes, [
+        new OfflineActionDefinition({
+          ...base,
+          input: Type.Object(
+            { value: unsupportedUnion },
+            { additionalProperties: false },
+          ),
+        }),
+      ]).prepare('https://union-reject.example/schemas/'),
+    /unsupported_action_union/,
+  );
+}
+
+const unionLikePayload = { anyOf: [{ const: 'payload-data' }] };
+unionLikePayload[Symbol.for('TypeBox.Kind')] = 'Union';
+const payloadCatalog = new OfflineActionCatalog(classes, [
+  new OfflineActionDefinition({
+    ...base,
+    input: Type.Unsafe({
+      type: 'object',
+      properties: {
+        value: {
+          const: unionLikePayload,
+          default: unionLikePayload,
+          examples: [unionLikePayload],
+        },
+      },
+      required: ['value'],
+      additionalProperties: false,
+    }),
+  }),
+]);
+const payload = payloadCatalog
+  .prepare('https://literal-payload.example/schemas/')
+  .schemaResources[0].document.parse().properties.value;
+const serializedUnionLikePayload = JSON.parse(JSON.stringify(unionLikePayload));
+assert.deepEqual(payload.const, serializedUnionLikePayload);
+assert.deepEqual(payload.default, serializedUnionLikePayload);
+assert.deepEqual(payload.examples, [serializedUnionLikePayload]);
+
+const cyclicSchema = Type.Unsafe({
+  type: 'object',
+  properties: {},
+  additionalProperties: false,
+});
+cyclicSchema.properties.self = cyclicSchema;
+assert.throws(
+  () =>
+    new OfflineActionCatalog(classes, [
+      new OfflineActionDefinition({ ...base, input: cyclicSchema }),
+    ]).prepare('https://cycle.example/schemas/'),
+  /invalid_action_definition/,
+);
+
+let sharedBranch = { type: 'string' };
+for (let depth = 0; depth < 6; depth += 1) {
+  sharedBranch = {
+    type: 'object',
+    properties: { a: sharedBranch, b: sharedBranch, c: sharedBranch },
+    additionalProperties: false,
+  };
+}
+const expandingSchema = Type.Unsafe({
+  type: 'object',
+  properties: { a: sharedBranch, b: sharedBranch, c: sharedBranch },
+  additionalProperties: false,
+});
+assert.throws(
+  () =>
+    new OfflineActionCatalog(classes, [
+      new OfflineActionDefinition({ ...base, input: expandingSchema }),
+    ]).prepare('https://bounded-schema.example/schemas/'),
+  /invalid_action_definition|action_schema_complexity_exceeded/,
 );
 assert.throws(
   () =>

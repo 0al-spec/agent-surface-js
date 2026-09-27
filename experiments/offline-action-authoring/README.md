@@ -18,9 +18,13 @@ declarations at runtime.
 
 The current candidate schema authoring dependency is TypeBox 0.34.52. It is
 used only by this experiment; the SDK's accepted schema dialect remains
-authoritative. In particular, the Calcu operator union is represented using
-JSON Schema `enum`, because TypeBox's default enum encoding exceeds the
-current bounded validator's supported dialect.
+authoritative. The Calcu operator declaration is an inferred TypeBox union of
+four string literals. During explicit preparation, a narrow adapter recognizes
+only TypeBox unions made entirely of distinct, unannotated string literals and
+lowers them to the accepted JSON Schema `type: "string"` plus `enum` form.
+Mixed/nonliteral unions, extra union/member metadata, and duplicates are
+rejected; no schema keywords are silently dropped. This preserves the previous
+`Type.Unsafe` enum schema shape and input-schema hash for the same schema URI.
 
 Run from the repository root:
 
@@ -57,14 +61,23 @@ composition or complete manifest/runtime conformance.
 
 The schema checks cover explicit metadata, duplicate IDs, closed root/nested
 objects, unsupported keywords, unknown action IDs, the four allowed arithmetic
-operators, and rejected extra operators. Array membership is snapshotted by the
-catalog, and preparing does not mutate caller-owned declaration values. The
-declaration object and TypeBox schemas themselves are still retained by
-reference, so callers must not mutate them before preparation; defensive
-declaration-value snapshotting remains open. The `Type.Unsafe` enum bridge also
-remains a typing limitation: schema runtime values are fixed to the four
-operators, but a generic unsafe cast can claim an incompatible TypeScript
-type.
+operators, and rejected extra operators. Both action metadata/schema graphs
+and handler identity are captured at definition construction, before the first
+prepare. Snapshot capture reads own data descriptors without invoking
+accessors, preserves TypeBox symbol metadata, supports shared acyclic nodes,
+and does not freeze or mutate caller-owned values. Cycles, accessors, non-plain
+objects, unsupported values, more than 4,096 expanded values, more than
+1,000,000 UTF-16 code units across captured strings/property names, or nesting
+deeper than 64 levels leave an invalid snapshot that fails on explicit
+preparation. Shared acyclic nodes are copied per occurrence, so the bound also
+limits later serialization growth.
+Capture performs no schema lowering, validation, JSON parsing, I/O, or handler
+execution. Preparation lowering visits schema-valued locations only; literal,
+default, and example payloads are retained as data. Lowering is bounded to
+1,024 expanded schema nodes and depth 64, and the supported literal union is
+limited to 32 members. The positive Calcu
+declaration no longer needs `Type.Unsafe`; negative fixtures may still use it
+to exercise rejection paths.
 
 Not established by this offline experiment: dangling/conflicting resource
 references, declaration/type/schema correspondence in general, automatic
@@ -72,4 +85,6 @@ method discovery (there is none), Grant expansion behavior, issuance, consent,
 identity, session admission, runtime invocation, receipts, transport, or
 application-side-effect guarantees. `JsonDocument` continues to reject
 non-finite JSON numbers and negative zero at its input boundary; that is not a
-property inferred from TypeBox's number schema.
+property inferred from TypeBox's number schema. Snapshot reflection cannot
+prevent Proxy traps in caller-supplied objects; use plain data records and
+TypeBox schemas as the supported authoring inputs.
