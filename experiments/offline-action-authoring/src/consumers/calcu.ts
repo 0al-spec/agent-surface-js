@@ -8,19 +8,17 @@ const operatorSchema = Type.Unsafe<Operator>({
   type: 'string',
   enum: [...operators],
 });
-const calculationInput = Type.Object(
-  {
-    operator: operatorSchema,
-    left: Type.Number(),
-    right: Type.Number(),
-  },
-  { additionalProperties: false },
-);
+const calculationFields = {
+  operator: operatorSchema,
+  left: Type.Number(),
+  right: Type.Number(),
+};
+const calculationInput = Type.Object(calculationFields, {
+  additionalProperties: false,
+});
 const calculationOutput = Type.Object(
   {
-    operator: operatorSchema,
-    left: Type.Number(),
-    right: Type.Number(),
+    ...calculationFields,
     result: Type.Number(),
   },
   { additionalProperties: false },
@@ -28,56 +26,47 @@ const calculationOutput = Type.Object(
 
 export type CalculationInput = Static<typeof calculationInput>;
 export type CalculationOutput = Static<typeof calculationOutput>;
-export let handlerCalls = 0;
 
-const calculation = new OfflineActionDefinition({
-  action: {
-    id: 'calculation.propose',
-    scope: 'calculation.propose',
-    risk: 'propose',
-    side_effect: false,
-    approval: 'none',
-    execution: {
-      mode: 'propose',
-      operation_id: 'calculation.propose.operation',
-      persisted: false,
-    },
-    data_exposure: {
-      classes: ['application.result'],
-      redaction: { mode: 'none' },
-      retention: { mode: 'user_managed' },
-    },
-  },
-  input: calculationInput,
-  output: calculationOutput,
-  handler: (input: CalculationInput): CalculationOutput => {
-    handlerCalls += 1;
-    const result =
-      input.operator === 'add'
-        ? input.left + input.right
-        : input.operator === 'subtract'
-          ? input.left - input.right
-          : input.operator === 'multiply'
-            ? input.left * input.right
-            : input.left / input.right;
-    return { ...input, result };
-  },
-});
+export type CalculationHandler = (
+  input: CalculationInput,
+) => CalculationOutput | Promise<CalculationOutput>;
 
-const catalog = new OfflineActionCatalog(
-  new JsonDocument(
-    JSON.stringify([
-      {
-        id: 'application.result',
-        classification: 'private',
-        label: 'Application result',
-        description: 'Application-owned calculation result.',
+export function prepareCalcu(handler: CalculationHandler) {
+  const calculation = new OfflineActionDefinition({
+    action: {
+      id: 'calculation.propose',
+      scope: 'calculation.propose',
+      risk: 'propose',
+      side_effect: false,
+      approval: 'none',
+      execution: {
+        mode: 'propose',
+        operation_id: 'calculation.propose.operation',
+        persisted: false,
       },
-    ]),
-  ),
-  [calculation],
-);
+      data_exposure: {
+        classes: ['application.result'],
+        redaction: { mode: 'none' },
+        retention: { mode: 'user_managed' },
+      },
+    },
+    input: calculationInput,
+    output: calculationOutput,
+    handler,
+  });
 
-export function prepareCalcu() {
+  const catalog = new OfflineActionCatalog(
+    new JsonDocument(
+      JSON.stringify([
+        {
+          id: 'application.result',
+          classification: 'private',
+          label: 'Application result',
+          description: 'Application-owned calculation result.',
+        },
+      ]),
+    ),
+    [calculation],
+  );
   return catalog.prepare('https://calcu.example.test/schemas/');
 }

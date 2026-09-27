@@ -1,19 +1,30 @@
 import assert from 'node:assert/strict';
-import { JsonDocument } from '@0al/agent-surface';
+import { CanonicalObjectHash, JsonDocument } from '@0al/agent-surface';
 import {
   OfflineActionCatalog,
   OfflineActionDefinition,
 } from '@0al/offline-action-authoring-prototype';
-import {
-  handlerCalls as calcuHandlerCalls,
-  prepareCalcu,
-} from '@0al/offline-action-authoring-prototype/consumers/calcu';
+import { prepareCalcu } from '@0al/offline-action-authoring-prototype/consumers/calcu';
 import {
   handlerCalls as helloHandlerCalls,
   prepareHello,
 } from '@0al/offline-action-authoring-prototype/consumers/hello';
 import { Type } from '@sinclair/typebox';
 
+const withoutSchemaIdentity = ({ $schema, $id, ...schema }) => schema;
+const removeRedundantType = (schema) => {
+  if (Array.isArray(schema)) return schema.map(removeRedundantType);
+  if (typeof schema !== 'object' || schema === null) return schema;
+  const result = Object.fromEntries(
+    Object.entries(schema).map(([key, value]) => [
+      key,
+      removeRedundantType(value),
+    ]),
+  );
+  if (('enum' in result || 'const' in result) && result.type === 'string')
+    delete result.type;
+  return result;
+};
 const hello = prepareHello();
 const greeting = hello.actionDocuments[0].parse();
 assert.deepEqual(
@@ -24,6 +35,7 @@ assert.deepEqual(
     side_effect: greeting.side_effect,
     approval: greeting.approval,
     execution: greeting.execution,
+    data_exposure: greeting.data_exposure,
   },
   {
     id: 'greeting.propose',
@@ -36,6 +48,11 @@ assert.deepEqual(
       operation_id: 'greeting.propose',
       persisted: false,
     },
+    data_exposure: {
+      classes: ['hello.public-text'],
+      redaction: { mode: 'none' },
+      retention: { mode: 'user_managed' },
+    },
   },
 );
 assert.equal('handler' in greeting, false);
@@ -45,11 +62,111 @@ hello.validateOutput(
   new JsonDocument('{"greeting":"Hello, world!"}'),
 );
 assert.equal(helloHandlerCalls, 0);
+const helloSchema = hello.schemaResources
+  .find(({ uri }) => uri === greeting.output_schema)
+  .document.parse();
+assert.deepEqual(removeRedundantType(withoutSchemaIdentity(helloSchema)), {
+  type: 'object',
+  properties: { greeting: { const: 'Hello, world!' } },
+  required: ['greeting'],
+  additionalProperties: false,
+});
+assert.equal(helloSchema.properties.greeting.type, 'string');
+assert.notEqual(
+  greeting.output_schema,
+  'https://hello.example.invalid/schemas/greeting-output.json',
+);
 
-const calcu = prepareCalcu();
+let calcuHandlerCalls = 0;
+const calcu = prepareCalcu((input) => {
+  calcuHandlerCalls += 1;
+  return { ...input, result: 0 };
+});
 const calculation = calcu.actionDocuments[0].parse();
 assert.equal(calculation.id, 'calculation.propose');
 assert.match(calculation.input_schema_hash, /^sha-256:[A-Za-z0-9_-]+$/);
+const calcuInput = calcu.schemaResources
+  .find(({ uri }) => uri === calculation.input_schema)
+  .document.parse();
+const calcuOutput = calcu.schemaResources
+  .find(({ uri }) => uri === calculation.output_schema)
+  .document.parse();
+const baselineCalcuInput = {
+  type: 'object',
+  properties: {
+    operator: { enum: ['add', 'subtract', 'multiply', 'divide'] },
+    left: { type: 'number' },
+    right: { type: 'number' },
+  },
+  required: ['operator', 'left', 'right'],
+  additionalProperties: false,
+};
+const baselineCalcuOutput = {
+  type: 'object',
+  properties: {
+    operator: { enum: ['add', 'subtract', 'multiply', 'divide'] },
+    left: { type: 'number' },
+    right: { type: 'number' },
+    result: { type: 'number' },
+  },
+  required: ['operator', 'left', 'right', 'result'],
+  additionalProperties: false,
+};
+assert.deepEqual(
+  removeRedundantType(withoutSchemaIdentity(calcuInput)),
+  baselineCalcuInput,
+);
+assert.deepEqual(
+  removeRedundantType(withoutSchemaIdentity(calcuOutput)),
+  baselineCalcuOutput,
+);
+assert.equal(calcuInput.properties.operator.type, 'string');
+assert.deepEqual(
+  {
+    id: calculation.id,
+    scope: calculation.scope,
+    risk: calculation.risk,
+    side_effect: calculation.side_effect,
+    approval: calculation.approval,
+    execution: calculation.execution,
+    data_exposure: calculation.data_exposure,
+  },
+  {
+    id: 'calculation.propose',
+    scope: 'calculation.propose',
+    risk: 'propose',
+    side_effect: false,
+    approval: 'none',
+    execution: {
+      mode: 'propose',
+      operation_id: 'calculation.propose.operation',
+      persisted: false,
+    },
+    data_exposure: {
+      classes: ['application.result'],
+      redaction: { mode: 'none' },
+      retention: { mode: 'user_managed' },
+    },
+  },
+);
+assert.equal(
+  calculation.input_schema_hash,
+  new CanonicalObjectHash(
+    'https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1',
+  ).digest(new JsonDocument(JSON.stringify(calcuInput))),
+);
+const calcuBaselineUri =
+  'https://calcu.local/schemas/calculation.propose.input.json';
+assert.notEqual(calculation.input_schema, calcuBaselineUri);
+assert.notEqual(
+  calculation.input_schema_hash,
+  new CanonicalObjectHash(
+    'https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1',
+  ).digest(
+    new JsonDocument(JSON.stringify({ ...calcuInput, $id: calcuBaselineUri })),
+  ),
+  'schema URI is part of the hashed schema document',
+);
 const input = new JsonDocument(
   '{"operator":"multiply","left":240,"right":0.15}',
 );
@@ -66,6 +183,22 @@ assert.throws(
   () => calcu.validateInput('calculation.unknown', input),
   /action_not_declared/,
 );
+for (const operator of ['add', 'subtract', 'multiply', 'divide']) {
+  calcu.validateInput(
+    'calculation.propose',
+    new JsonDocument(JSON.stringify({ operator, left: 7, right: 3 })),
+  );
+}
+for (const operator of ['sqrt', 'power', 'modulo', '']) {
+  assert.throws(
+    () =>
+      calcu.validateInput(
+        'calculation.propose',
+        new JsonDocument(JSON.stringify({ operator, left: 7, right: 3 })),
+      ),
+    /schema_instance_invalid/,
+  );
+}
 assert.throws(
   () =>
     calcu.validateInput(
@@ -88,6 +221,100 @@ const base = {
   output: Type.Object({}, { additionalProperties: false, required: [] }),
   handler: () => ({}),
 };
+const initialDefinition = new OfflineActionDefinition(base);
+const callerDefinitions = [initialDefinition];
+const membershipSnapshot = new OfflineActionCatalog(classes, callerDefinitions);
+callerDefinitions.splice(0, 1);
+callerDefinitions.push(
+  new OfflineActionDefinition({
+    ...base,
+    action: {
+      ...base.action,
+      id: 'calculation.replacement',
+      scope: 'calculation.replacement',
+      execution: {
+        ...base.action.execution,
+        operation_id: 'calculation.replacement',
+      },
+    },
+  }),
+);
+assert.deepEqual(
+  membershipSnapshot
+    .prepare('https://membership.example/schemas/')
+    .actionDocuments.map((document) => document.parse().id),
+  ['calculation.propose'],
+);
+const firstPreparation = membershipSnapshot.prepare(
+  'https://membership.example/schemas',
+);
+assert.equal(
+  membershipSnapshot.prepare('https://membership.example/schemas/'),
+  firstPreparation,
+);
+assert.throws(
+  () => membershipSnapshot.prepare('https://different.example/schemas/'),
+  /schema_base_uri_changed/,
+);
+assert.throws(
+  () => membershipSnapshot.prepare('not a URI'),
+  /invalid_schema_base_uri/,
+);
+
+for (const malformed of [
+  { ...base, action: null },
+  { ...base, action: { ...base.action, execution: null } },
+  { ...base, action: { ...base.action, data_exposure: null } },
+  { ...base, handler: null },
+  { action: base.action, input: base.input, output: base.output },
+  { ...base, action: { ...base.action, approval: undefined } },
+  { ...base, input: null },
+]) {
+  assert.throws(() =>
+    new OfflineActionCatalog(classes, [
+      new OfflineActionDefinition(malformed),
+    ]).prepare('https://malformed.example/schemas/'),
+  );
+}
+for (const nestedInput of [
+  Type.Object(
+    { values: Type.Array(Type.Object({}, { additionalProperties: true })) },
+    { additionalProperties: false },
+  ),
+  Type.Unsafe({
+    type: 'object',
+    properties: { nested: { $ref: '#/$defs/nested' } },
+    additionalProperties: false,
+    $defs: {
+      nested: { type: 'object', properties: {}, additionalProperties: true },
+    },
+  }),
+]) {
+  assert.throws(
+    () =>
+      new OfflineActionCatalog(classes, [
+        new OfflineActionDefinition({ ...base, input: nestedInput }),
+      ]).prepare('https://nested.example/schemas/'),
+    /action_schema_must_be_closed_object/,
+  );
+}
+
+const ownedInput = Type.Object(
+  {
+    nested: Type.Object(
+      { value: Type.String() },
+      { additionalProperties: false },
+    ),
+  },
+  { additionalProperties: false },
+);
+const ownedAction = JSON.parse(JSON.stringify(base.action));
+const ownedDefinition = { ...base, action: ownedAction, input: ownedInput };
+const beforeCallerValues = JSON.stringify(ownedDefinition);
+new OfflineActionCatalog(classes, [
+  new OfflineActionDefinition(ownedDefinition),
+]).prepare('https://immutable.example/schemas/');
+assert.equal(JSON.stringify(ownedDefinition), beforeCallerValues);
 assert.throws(
   () =>
     new OfflineActionCatalog(classes, [

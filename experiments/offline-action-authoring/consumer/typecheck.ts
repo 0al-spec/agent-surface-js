@@ -3,6 +3,7 @@ import {
   OfflineActionCatalog,
   OfflineActionDefinition,
 } from '@0al/offline-action-authoring-prototype';
+import { prepareCalcu } from '@0al/offline-action-authoring-prototype/consumers/calcu';
 import { Type } from '@sinclair/typebox';
 
 const input = Type.Object({}, { additionalProperties: false, required: [] });
@@ -35,3 +36,6 @@ const greeting = new OfflineActionDefinition({
 });
 
 new OfflineActionCatalog(new JsonDocument('[]'), [greeting]);
+prepareCalcu(() => {
+  throw new Error('offline preparation must not execute application logic');
+});

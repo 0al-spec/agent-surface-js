@@ -141,17 +141,24 @@ export class OfflineActionCatalog {
   readonly #dataClasses: JsonDocument;
   readonly #definitions: readonly RuntimeActionDefinition[];
   #prepared: PreparedActionCatalog | undefined;
+  #preparedBaseUri: string | undefined;
 
   constructor(
     dataClasses: JsonDocument,
     definitions: readonly RuntimeActionDefinition[],
   ) {
     this.#dataClasses = dataClasses;
-    this.#definitions = definitions;
+    // Capture allow-list membership; the caller may retain and mutate its array.
+    this.#definitions = Object.freeze([...definitions]);
   }
 
   prepare(schemaBaseUri: string): PreparedActionCatalog {
-    if (this.#prepared !== undefined) return this.#prepared;
+    const base = validatedBaseUri(schemaBaseUri);
+    if (this.#prepared !== undefined) {
+      if (base.href !== this.#preparedBaseUri)
+        throw new Error('schema_base_uri_changed');
+      return this.#prepared;
+    }
     if (!(this.#dataClasses instanceof JsonDocument))
       throw new Error('invalid_data_class_catalog');
 
@@ -165,7 +172,7 @@ export class OfflineActionCatalog {
       const id = definition.id();
       if (ids.has(id)) throw new Error('duplicate_action_id');
       ids.add(id);
-      const fragment = definition.prepare(schemaBaseUri);
+      const fragment = definition.prepare(base.href);
       new DataExposure(
         new JsonDocument(
           JSON.stringify(
@@ -213,6 +220,7 @@ export class OfflineActionCatalog {
           false,
         ),
     });
+    this.#preparedBaseUri = base.href;
     return this.#prepared;
   }
 }
@@ -268,6 +276,8 @@ function validateDefinition<
 }
 
 function validateSchemaShape(schema: TSchema): void {
+  if (typeof schema !== 'object' || schema === null || Array.isArray(schema))
+    throw new Error('action_schema_must_be_closed_object');
   const root = schema as unknown as JsonRecord;
   if (
     root.type !== 'object' ||
