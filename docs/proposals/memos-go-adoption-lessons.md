@@ -44,9 +44,15 @@ prototype's file journal into an SDK. A generic `get`/`set` storage interface
 would hide the decisive property: reservation must be durable before mutation,
 and the host must define whether its business transaction can commit with the
 operation record. If it cannot, the SDK must expose an uncertain outcome and
-forbid transparent retry. Silent journal deletion, multiple replicas with
-separate directories, and a new idempotency key remain outside this probe's
-fence. An SDK cannot make an arbitrary external side effect transactional.
+allow a retry only when the host supplies either an atomic application-level
+deduplication guarantee for the stable operation key or reconciliation that
+conclusively establishes that no effect was applied. The adapter must also
+recheck that the original authority and approval are still valid before
+dispatch. Otherwise the outcome stays uncertain and requires reconciliation;
+the SDK must not retry transparently. Silent journal deletion, multiple
+replicas with separate directories, and a new idempotency key remain outside
+this probe's fence. An SDK cannot make an arbitrary external side effect
+transactional.
 
 Memos-specific policy stays with Memos: authenticate the user; decide which
 content, effects, and visibility are allowed; bind a real user decision; call
