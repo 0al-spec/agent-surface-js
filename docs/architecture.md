@@ -216,6 +216,13 @@ where useful. Generated declarations still enter the same runtime executor;
 annotations cannot replace admission or prove a handler's advertised effects.
 Native and ASP paths must preserve the same application business invariants.
 
+The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
+offers bounded cross-language design feedback: its single-node crash fence
+preserved an uncertain outcome after an actual process kill, but neither that
+prototype nor this TypeScript SDK makes application effects atomic. It is not
+a second SDK implementation, a new conformance claim, or a change to the
+Calcu-first delivery sequence.
+
 UI hooks may bind safe preview, request state and cancellation, never issue
 authority in browser code. Keep privileged modules out of client bundles with
 import-boundary tests. Favor composition over inheritance-heavy mixins and
