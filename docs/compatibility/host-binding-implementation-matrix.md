@@ -6,7 +6,11 @@ implements a bounded part of the first two rows. The
 [offline semantic Grant request](../offline-semantic-grant-request.md) and
 [offline selected Grant](../offline-selected-grant.md) implement the
 representation-only part of the Grant and exposure rows. This matrix is not a
-runtime conformance claim or Calcu activation record.
+runtime conformance claim or Calcu activation record. The
+[offline request–Grant composition](../offline-request-grant-composition.md)
+now checks both complete values against the same retained manifest and host
+expectations and forbids expiration extension. This remains representation-only;
+resource filters, consent and authoritative issuance are not implemented.
 
 ## Reviewed source checkpoint
 
