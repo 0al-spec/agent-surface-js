@@ -11,6 +11,8 @@ import (
 	"time"
 
 	storepb "github.com/usememos/memos/proto/gen/store"
+	"github.com/usememos/memos/store"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var errNonLiveRejected = errors.New("non-live candidate rejected")
@@ -21,6 +23,11 @@ type nonLiveMemosFence struct {
 	now func() time.Time
 }
 type nonLiveMemosCandidate struct {
+	owner *nonLiveMemosFence
+	id    int64
+}
+
+type nonLiveMemosWithdrawal struct {
 	owner *nonLiveMemosFence
 	id    int64
 }
@@ -38,6 +45,9 @@ func installNonLiveMemosFence(ctx context.Context, db *DB, now func() time.Time)
  CREATE TABLE IF NOT EXISTS asp_nonlive_candidate(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,session_id TEXT NOT NULL,
  revision INTEGER NOT NULL,expires_at INTEGER NOT NULL,state TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS asp_nonlive_publication(candidate_id INTEGER PRIMARY KEY,kind TEXT NOT NULL CHECK(kind='symbolic'));
+ CREATE TABLE IF NOT EXISTS asp_nonlive_withdrawal(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,session_id TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('frozen','reconciled')));
+ CREATE UNIQUE INDEX IF NOT EXISTS asp_nonlive_frozen_user ON asp_nonlive_withdrawal(user_id) WHERE state='frozen';
  `
 	if _, err := tx.ExecContext(ctx, schema); err != nil {
 		return nil, err
@@ -53,10 +63,14 @@ func installNonLiveMemosFence(ctx context.Context, db *DB, now func() time.Time)
 		if spec.when != "" {
 			when = " WHEN " + spec.when
 		}
-		statement := fmt.Sprintf(`CREATE TRIGGER IF NOT EXISTS asp_nonlive_%s AFTER %s ON %s%s BEGIN
+		// Refresh only this explicitly installed experiment's triggers atomically.
+		if _, err := tx.ExecContext(ctx, "DROP TRIGGER IF EXISTS asp_nonlive_"+spec.name); err != nil {
+			return nil, err
+		}
+		statement := fmt.Sprintf(`CREATE TRIGGER asp_nonlive_%s AFTER %s ON %s%s BEGIN
   INSERT INTO asp_nonlive_revision(user_id,revision) VALUES(%s,1) ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
   UPDATE asp_nonlive_candidate SET state=CASE WHEN state='issued' THEN 'revocation_required' ELSE 'attempted' END
-  WHERE user_id=%s AND state!='revocation_required';
+  WHERE user_id=%s AND state NOT IN ('revocation_required','closed');
   END`, spec.name, spec.event, spec.table, when, spec.subject, spec.subject)
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return nil, err
@@ -107,7 +121,9 @@ func (f *nonLiveMemosFence) retain(ctx context.Context, userID int32, tokenID st
 		return nil, err
 	}
 	var unresolved int
-	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM asp_nonlive_candidate WHERE user_id=? AND state!='pending'", userID).Scan(&unresolved); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT
+ (SELECT COUNT(*) FROM asp_nonlive_candidate WHERE user_id=? AND state NOT IN ('pending','closed')) +
+ (SELECT COUNT(*) FROM asp_nonlive_withdrawal WHERE user_id=? AND state='frozen')`, userID, userID).Scan(&unresolved); err != nil {
 		return nil, err
 	}
 	if unresolved != 0 {
@@ -140,7 +156,8 @@ func (f *nonLiveMemosFence) attempt(ctx context.Context, ref *nonLiveMemosCandid
 		return err
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE asp_nonlive_candidate SET state='attempted' WHERE id=? AND state='pending'
- AND NOT EXISTS(SELECT 1 FROM asp_nonlive_candidate other WHERE other.user_id=asp_nonlive_candidate.user_id AND other.id!=asp_nonlive_candidate.id AND other.state!='pending')`, ref.id)
+ AND NOT EXISTS(SELECT 1 FROM asp_nonlive_candidate other WHERE other.user_id=asp_nonlive_candidate.user_id AND other.id!=asp_nonlive_candidate.id AND other.state NOT IN ('pending','closed'))
+ AND NOT EXISTS(SELECT 1 FROM asp_nonlive_withdrawal w WHERE w.user_id=asp_nonlive_candidate.user_id AND w.state='frozen')`, ref.id)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -191,6 +208,142 @@ func (f *nonLiveMemosFence) attempt(ctx context.Context, ref *nonLiveMemosCandid
 		return errNonLiveRejected
 	}
 	// Precommit guard is not proof of valid-through-delayed-COMMIT evidence.
+	if err := tx.Commit(); err != nil {
+		return errNonLiveUncertain
+	}
+	return nil
+}
+
+// beginWithdrawal durably freezes this fixture account BEFORE invoking a writer.
+// Fixture IDs are not authentication; only this selected test control path participates.
+func (f *nonLiveMemosFence) beginWithdrawal(ctx context.Context, userID int32, tokenID string) (*nonLiveMemosWithdrawal, error) {
+	tx, err := f.db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	if _, err := f.currentSession(ctx, tx, userID, tokenID); err != nil {
+		return nil, err
+	}
+	result, err := tx.ExecContext(ctx, `INSERT INTO asp_nonlive_withdrawal(user_id,session_id,state)
+ SELECT ?,?,'frozen' WHERE NOT EXISTS(SELECT 1 FROM asp_nonlive_withdrawal WHERE user_id=? AND state='frozen')`, userID, tokenID, userID)
+	if err != nil {
+		return nil, err
+	}
+	n, err := result.RowsAffected()
+	if err != nil || n != 1 {
+		return nil, errNonLiveRejected
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO asp_nonlive_revision VALUES(?,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1`, userID); err != nil {
+		return nil, err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE asp_nonlive_candidate
+ SET state=CASE WHEN state='issued' THEN 'revocation_required' ELSE 'attempted' END
+ WHERE user_id=? AND state NOT IN ('revocation_required','closed')`, userID); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, errNonLiveUncertain
+	}
+	return &nonLiveMemosWithdrawal{owner: f, id: id}, nil
+}
+
+func (f *nonLiveMemosFence) withdrawal(ctx context.Context, tx *sql.Tx, ref *nonLiveMemosWithdrawal) (int32, string, error) {
+	if ref == nil || ref.owner != f {
+		return 0, "", errNonLiveRejected
+	}
+	var userID int32
+	var tokenID string
+	if err := tx.QueryRowContext(ctx, `SELECT user_id,session_id FROM asp_nonlive_withdrawal
+ WHERE id=? AND state='frozen'`, ref.id).Scan(&userID, &tokenID); err != nil {
+		return 0, "", err
+	}
+	return userID, tokenID, nil
+}
+
+// resumeWithdrawal recovers an existing frozen intent, never creates one.
+// User IDs remain test-control-path fixtures, not public capabilities.
+func (f *nonLiveMemosFence) resumeWithdrawal(ctx context.Context, userID int32) (*nonLiveMemosWithdrawal, error) {
+	var id int64
+	if err := f.db.db.QueryRowContext(ctx, "SELECT id FROM asp_nonlive_withdrawal WHERE user_id=? AND state='frozen'", userID).Scan(&id); err != nil {
+		return nil, err
+	}
+	return &nonLiveMemosWithdrawal{owner: f, id: id}, nil
+}
+
+// removeSession uses the actual upstream Store writer with a fresh cache. Its
+// return value NEVER clears the freeze. It is safe to retry session removal,
+// not an issuance attempt; reconciliation is a separate authoritative read.
+func (f *nonLiveMemosFence) removeSession(ctx context.Context, ref *nonLiveMemosWithdrawal) error {
+	tx, err := f.db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	userID, tokenID, err := f.withdrawal(ctx, tx, ref)
+	tx.Rollback()
+	if err != nil {
+		return err
+	}
+	writer := store.New(f.db, f.db.profile)
+	// Do not Close: this ephemeral Store borrows the fence's database handle.
+	return writer.RemoveUserRefreshToken(ctx, userID, tokenID)
+}
+
+// sessionWithdrawn distinguishes positive absence/expiry evidence from SQL or
+// parsing failure. Account archive/deletion alone is NOT session-removal proof.
+func (f *nonLiveMemosFence) sessionWithdrawn(ctx context.Context, tx *sql.Tx, userID int32, tokenID string) error {
+	var raw string
+	err := tx.QueryRowContext(ctx, `SELECT value FROM user_setting
+ WHERE user_id=? AND key='REFRESH_TOKENS'`, userID).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	tokens := &storepb.RefreshTokensUserSetting{}
+	// Unknown fields must not turn unsupported evidence into apparent absence.
+	if err := (protojson.UnmarshalOptions{}).Unmarshal([]byte(raw), tokens); err != nil {
+		return err
+	}
+	for _, token := range tokens.RefreshTokens {
+		if token.TokenId != tokenID {
+			continue
+		}
+		if token.ExpiresAt == nil || !token.ExpiresAt.IsValid() || token.ExpiresAt.AsTime().After(f.now()) {
+			return errNonLiveRejected
+		}
+	}
+	return nil
+}
+
+func (f *nonLiveMemosFence) reconcileWithdrawal(ctx context.Context, ref *nonLiveMemosWithdrawal) error {
+	tx, err := f.db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	userID, tokenID, err := f.withdrawal(ctx, tx, ref)
+	if err != nil {
+		return err
+	}
+	if err := f.sessionWithdrawn(ctx, tx, userID, tokenID); err != nil {
+		return err
+	}
+	// Only symbolic records for this exact withdrawn session become terminal.
+	// Other sessions' unresolved records still block fresh retention/attempts.
+	if _, err := tx.ExecContext(ctx, `UPDATE asp_nonlive_candidate SET state='closed'
+ WHERE user_id=? AND session_id=?`, userID, tokenID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, "UPDATE asp_nonlive_withdrawal SET state='reconciled' WHERE id=?", ref.id); err != nil {
+		return err
+	}
 	if err := tx.Commit(); err != nil {
 		return errNonLiveUncertain
 	}

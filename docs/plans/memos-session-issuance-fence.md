@@ -141,6 +141,19 @@ retention or process-crash probes were added. The full acceptance matrix above
 remains planned evidence; selected storage tests do not establish full writer
 coverage, authenticated consent or external invalidation ordering.
 
+The next non-live overlay slice implements a **selected test withdrawal path**:
+persist freeze before calling the actual removal writer, retain it on failure
+or merely successful return, and reconcile only on authoritative exact-session
+absence/valid expiry. Its durable intent survives database reopen; reconciliation
+closes only that session's symbolic candidates atomically and cannot repair an
+old reference. Other unresolved sessions remain blocking. Tests reproduce
+stale-cache token resurrection and reject reconciliation in that state, as well
+as malformed/unknown evidence, unavailable storage and reconciliation rollback.
+These results do not wrap existing HTTP auth routes or prove all-writer safety;
+session resurrection after reconciliation and upstream read-modify-write ordering
+still require a separate writer-contract decision. No real Grant or credential
+revocation is inferred from closing symbolic experiment records.
+
 ## Remaining gates and next decision
 
 Current result: source-backed map plus a **conditional design**, not a qualified
@@ -149,11 +162,11 @@ transaction-scoped storage, durable single-attempt handling, valid-through-commi
 deadline proof, two exact consent lifecycles, Runtime registration, external
 identity/policy ordering, private delivery/custody and current Action enforcement.
 
-Next bounded decision: review whether the host owner accepts modifying those
-existing Memos storage/auth writers. If not, keep Memos as adoption evidence and
-choose another host; do not add a parallel auth registry that cannot fence them.
-If accepted, propose a separately authorized non-live transaction adapter slice
-before live integration. Preserve the SDK source lock and canonical ADP status.
+Next bounded decision: qualify a non-live refresh-setting writer contract that
+prevents stale-cache/read-modify-write resurrection, then determine how existing
+host auth callers would adopt withdrawal intent. Do not activate live issuance
+or add a parallel auth registry that cannot fence those writers. Preserve the
+SDK source lock and canonical ADP status.
 All normative obligations remain in the
 [consent-bound issuance plan](consent-approved-request-issuance-slice.md) and its
 pinned ASP references; this design neither relaxes them nor makes Memos qualified
