@@ -39,7 +39,9 @@ capability, Grant, credential or admission decision.
   and manifest-derived Data Exposure projection remain mandatory.
 - Grant expiry may equal or precede request expiry. Comparison uses the actual
   RFC 3339 instant, including timezone offsets and all fractional-second digits;
-  different textual representations of an equal instant are accepted.
+  different textual representations of an equal instant are accepted. RFC 3339
+  `-00:00` means the UTC time is known but the local offset is unknown, so it is
+  ordered as that UTC instant ([§4.3](https://www.rfc-editor.org/rfc/rfc3339.html#section-4.3)).
 - No current-clock check: historically expired fixtures can pass this offline
   relation. Identity freshness/status and credential deadlines remain trusted
   host/runtime responsibilities, not results of this method.
@@ -62,8 +64,9 @@ conformance. It adds no transport, issuer, registry or authority-store access.
 
 Tests in `tests/offline-selected-grant.test.ts` reuse the selected-contract
 fixtures: two unrelated applications, equal/shorter/later expiration, timezone
-equivalence, sub-millisecond extension, changed request bindings, rehashed
-invalid authority, strict JSON, inert construction and repeat validation.
+equivalence including `-00:00`, sub-millisecond extension, changed request
+bindings, oversized-source preflight, rehashed invalid authority, strict JSON,
+inert construction and repeat validation.
 Existing component tests remain the detailed representation vectors.
 
 The unchanged source lock is

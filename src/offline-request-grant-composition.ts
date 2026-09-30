@@ -41,6 +41,10 @@ export class OfflineRequestGrantComposition {
 
   /** No clock, issuer, credential, identity-status or authority-store access. */
   validate(): void {
+    // Preflight every caller document before any of them is parsed. In
+    // particular, an oversized identity document must not follow parsed inputs.
+    for (const document of [this.#request, this.#grant, this.#identityEvidence])
+      checkSourceSize(document);
     const request = snapshot(this.#request);
     const grant = snapshot(this.#grant);
     const identityEvidence = snapshot(this.#identityEvidence);
@@ -68,14 +72,24 @@ export class OfflineRequestGrantComposition {
 }
 
 function snapshot(document: JsonDocument): JsonDocument {
-  if (!(document instanceof JsonDocument))
-    throw new Error('invalid_composition_document');
-  // Read the original text, not a subclass's alternate parse result. Reparse
-  // the base snapshot to enforce limits even if byte-length was overridden.
+  checkSourceSize(document);
+  // Read the original text, not a subclass's alternate parse result.
   const value = JsonDocument.prototype.parse.call(document, MAX_DOCUMENT_BYTES);
   const retained = new JsonDocument(JSON.stringify(value));
   retained.parse(MAX_DOCUMENT_BYTES);
   return retained;
+}
+
+function checkSourceSize(document: JsonDocument): void {
+  if (!(document instanceof JsonDocument))
+    throw new Error('invalid_composition_document');
+  // Check retained source bytes before parsing; JsonDocument.parse calls the
+  // overridable byte-length method, so its own check is not sufficient here.
+  if (
+    JsonDocument.prototype.utf8ByteLength.call(document) > MAX_DOCUMENT_BYTES
+  ) {
+    throw new Error('json_byte_limit');
+  }
 }
 
 function expiry(document: JsonDocument): string {

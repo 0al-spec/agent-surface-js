@@ -376,8 +376,13 @@ describe('OfflineRequestGrantComposition', () => {
     ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00Z'],
     ['2000-01-01T00:00:00Z', '1999-12-31T23:59:59Z'],
     ['2000-01-01T00:00:00Z', '2000-01-01T01:00:00+01:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00-00:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00-00:00'],
     ['2000-01-01T00:00:00.1234Z', '2000-01-01T00:00:00.123400Z'],
     ['2000-01-01T00:00:00.0002Z', '2000-01-01T00:00:00.0001Z'],
+    ['2000-01-01T00:00:00.0002-00:00', '2000-01-01T00:00:00.0001Z'],
+    ['2000-01-01T00:00:00.0002Z', '2000-01-01T00:00:00.0001-00:00'],
     ['2000-01-01T00:00:00Z', '2000-01-01t00:00:00z'],
   ])('accepts equal or shorter instants: %s / %s', (request, grant) => {
     expect(() => composition(request, grant).validate()).not.toThrow();
@@ -388,6 +393,8 @@ describe('OfflineRequestGrantComposition', () => {
     ['2000-01-01T00:00:00.0001Z', '2000-01-01T00:00:00.0002Z'],
     ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00.000000001Z'],
     ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00-01:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00.000000001Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00.000000001-00:00'],
   ])('rejects later instants: %s / %s', (request, grant) => {
     expect(() => composition(request, grant).validate()).toThrow(
       /^grant_expiry_exceeds_request$/,
@@ -578,23 +585,68 @@ describe('OfflineRequestGrantComposition', () => {
     ).toThrow();
   });
 
-  it('enforces the snapshot byte limit even with overridden byte length', () => {
+  it.each([
+    'request',
+    'grant',
+    'identity',
+  ] as const)('rejects oversized %s source before any document is parsed, despite an overridden byte length', (oversizedInput) => {
     class UnderreportedDocument extends JsonDocument {
       override utf8ByteLength(): number {
         return 1;
       }
     }
     const grant = grantValue(value);
+    const request = semanticRequest(grant, '2001-01-01T00:00:00Z');
+    const grantSource = grantDocument(grant);
+    const expected = expectations(value);
+    const oversized = new UnderreportedDocument(
+      JSON.stringify({ padding: 'x'.repeat(256 * 1024) }),
+    );
+    const manifest = preparedManifest(value);
+    const checked = new OfflineRequestGrantComposition(
+      oversizedInput === 'request' ? oversized : request,
+      oversizedInput === 'grant' ? oversized : grantSource,
+      manifest,
+      oversizedInput === 'identity'
+        ? { ...expected, identityEvidence: oversized }
+        : expected,
+    );
+    const parse = vi.spyOn(JsonDocument.prototype, 'parse');
+    try {
+      expect(() => checked.validate()).toThrow(/^json_byte_limit$/);
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it('accepts a source exactly at the snapshot byte limit', () => {
+    const grant = grantValue(value);
+    const requestText = JSON.stringify({
+      locations: grant.locations,
+      actions: grant.actions,
+      delegate: grant.delegate,
+      resource_server: grant.resource_server,
+      scopes: grant.scopes,
+      constraints: {
+        expires_at: '2001-01-01T00:00:00Z',
+        credential_release: { mode: 'deny' },
+      },
+      credential_profile: grant.credential_profile,
+      audit: grant.audit,
+    });
+    const atLimit = new JsonDocument(
+      requestText + ' '.repeat(256 * 1024 - Buffer.byteLength(requestText)),
+    );
+    expect(atLimit.utf8ByteLength()).toBe(256 * 1024);
     expect(() =>
       new OfflineRequestGrantComposition(
-        semanticRequest(grant, '2001-01-01T00:00:00Z'),
-        new UnderreportedDocument(
-          JSON.stringify({ padding: 'x'.repeat(256 * 1024) }),
-        ),
+        atLimit,
+        grantDocument(grant),
         preparedManifest(value),
         expectations(value),
       ).validate(),
-    ).toThrow(/^json_byte_limit$/);
+    ).not.toThrow();
   });
 });
 
