@@ -173,6 +173,41 @@ existing host auth callers would adopt withdrawal intent and transaction-scoped
 refresh writers, including rotation/password failure semantics. Do not activate live issuance
 or add a parallel auth registry that cannot fence those writers. Preserve the
 SDK source lock and canonical ADP status.
+
+### Planned Memos host follow-up gates
+
+These are unimplemented host-integration tasks. The merged overlays demonstrate
+selected database behavior; neither task promotes Memos to a qualified host.
+
+1. **Refresh writer no-lost-update contract.** The new fixture writers serialize
+   their own read-modify-write operations and tombstone withdrawn IDs. Generic
+   upstream Store writers remain able to lose unrelated, non-tombstoned sessions
+   when they read a stale setting and later replace the full list. Inventory all
+   refresh-setting writers, then define one transaction-scoped read/validate/write
+   boundary that preserves every still-valid unrelated session across independent
+   Store handles. Cache invalidation must follow commit and never act as commit
+   authority. Prove simultaneous add/add, add/remove, rotate/remove and password
+   session-pruning orderings; inject write failures and assert atomic rollback and
+   surfaced errors. Any bypassing writer or unsupported backend remains a failed
+   qualification gate.
+
+2. **Host auth-route withdrawal adoption.** Only after the writer boundary is
+   agreed, map `SignOut`, `RefreshToken`, sign-in persistence and password/session
+   changes onto the durable withdrawal intent and reconciliation contract. A
+   logout response, cookie clearing, logged-and-ignored storage error, or newly
+   issued replacement token cannot stand in for persisted withdrawal evidence.
+   Define the response and recovery behavior for failed/ambiguous storage writes;
+   freeze the affected account/session until authoritative reconciliation. Define
+   rotation as one ordered transition that does not carry prior consent forward,
+   and account-change behavior when the caller's own session is preserved. Exercise
+   route-level failure, retry, restart and concurrent-operation cases in a separate
+   non-live host fixture before discussing live integration.
+
+The ordering is deliberate: route semantics depend on a writer contract that
+cannot silently discard other sessions. These gates still do not cover external
+identity, Runtime, exact human consent, credential custody/delivery, or Action
+enforcement listed above.
+
 All normative obligations remain in the
 [consent-bound issuance plan](consent-approved-request-issuance-slice.md) and its
 pinned ASP references; this design neither relaxes them nor makes Memos qualified
