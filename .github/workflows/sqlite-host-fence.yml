@@ -19,3 +19,30 @@ jobs:
       - run: go mod verify
       - run: go vet ./...
       - run: go test -race -count=1 -timeout=2m ./...
+  memos-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: sdk
+      - uses: actions/checkout@v5
+        with:
+          repository: usememos/memos
+          ref: 2b2192d4e153bd04f1d325b60fd880cf00d68b01
+          path: memos
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.27.1
+          cache-dependency-path: memos/go.sum
+      - run: node sdk/experiments/memos-storage-fence/apply-overlay.mjs memos
+      - run: test -z "$(gofmt -l store/db/sqlite/asp_nonlive_fence*.go)"
+        working-directory: memos
+      - run: go vet -tags=asp_nonlive_fence ./store/db/sqlite
+        working-directory: memos
+      - run: go test -race -tags=asp_nonlive_fence -run '^TestNonLiveMemosFence' -count=1 -timeout=2m ./store/db/sqlite
+        working-directory: memos

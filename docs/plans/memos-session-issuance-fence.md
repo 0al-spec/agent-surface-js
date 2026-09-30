@@ -133,9 +133,13 @@ where material changed; the old approved record is never repaired.
 An isolated [SQLite experiment](../../experiments/sqlite-host-fence/README.md)
 now exercises a subset against actual temporary SQLite transactions and
 normalized fixture rows, not Memos tables/writers. It is not host qualification.
-No new Memos robustness tests or live probes were run. Above vectors are planned
-acceptance evidence, not test results. Existing symbolic tests cannot establish
-SQLite durability, full writer coverage or authenticated consent.
+The follow-up [Memos storage overlay](../../experiments/memos-storage-fence/README.md)
+attaches opt-in triggers to actual Memos tables and tests existing Store/driver
+writers on migrated temporary databases. It does not invoke live/HTTP routes,
+authenticate users or qualify every authority dependency. No further live,
+retention or process-crash probes were added. The full acceptance matrix above
+remains planned evidence; selected storage tests do not establish full writer
+coverage, authenticated consent or external invalidation ordering.
 
 ## Remaining gates and next decision
 
