@@ -143,6 +143,13 @@ func (f *nonLiveMemosFence) retain(ctx context.Context, userID int32, tokenID st
 	if err != nil {
 		return nil, err
 	}
+	var withdrawn int
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM asp_nonlive_withdrawal WHERE user_id=? AND session_id=?", userID, tokenID).Scan(&withdrawn); err != nil {
+		return nil, err
+	}
+	if withdrawn != 0 {
+		return nil, errNonLiveRejected
+	}
 	var unresolved int
 	if err := tx.QueryRowContext(ctx, `SELECT
  (SELECT COUNT(*) FROM asp_nonlive_candidate WHERE user_id=? AND state NOT IN ('pending','closed')) +
@@ -180,6 +187,7 @@ func (f *nonLiveMemosFence) attempt(ctx context.Context, ref *nonLiveMemosCandid
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE asp_nonlive_candidate SET state='attempted' WHERE id=? AND state='pending'
  AND NOT EXISTS(SELECT 1 FROM asp_nonlive_candidate other WHERE other.user_id=asp_nonlive_candidate.user_id AND other.id!=asp_nonlive_candidate.id AND other.state NOT IN ('pending','closed'))
+ AND NOT EXISTS(SELECT 1 FROM asp_nonlive_withdrawal w WHERE w.user_id=asp_nonlive_candidate.user_id AND w.session_id=asp_nonlive_candidate.session_id)
  AND NOT EXISTS(SELECT 1 FROM asp_nonlive_withdrawal w WHERE w.user_id=asp_nonlive_candidate.user_id AND w.state='frozen')`, ref.id)
 	if err != nil {
 		tx.Rollback()
