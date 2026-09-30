@@ -34,7 +34,41 @@ authentication. The only publication is a `kind='symbolic'` database marker.
 Single-attempt state is persisted before a separate atomic publication
 transaction. Failure leaves the candidate consumed; pending/fresh siblings
 cannot bypass unresolved state. Postcommit invalidation marks
-`revocation_required`, not confirmed credential revocation. No unfreeze API exists.
+`revocation_required`, not confirmed credential revocation.
+
+## Selected withdrawal control path (non-live)
+
+The opt-in test control path adds an explicit sequence:
+
+```text
+beginWithdrawal → durable account freeze + invalidation
+removeSession   → actual Store.RemoveUserRefreshToken (may fail; freeze remains)
+reconcileWithdrawal → transaction reads exact session absence/expiry
+                    → closes only its symbolic candidates + reconciles intent
+```
+
+No removal writer runs if intent persistence fails. Writer success, ignored errors,
+cookie clearing or HTTP success cannot clear the freeze. Retention and attempts
+check persisted state across database handles. Reopen/reinstallation preserves
+it; `resumeWithdrawal` recovers an existing intent, never remints a candidate.
+Missing rows or a missing/validly expired exact token are positive evidence;
+active tokens, malformed/unknown protobuf JSON, missing expiry, cancelled reads
+and SQL failures leave the freeze intact. Closing candidates and reconciling
+the intent share one transaction. Closed references never become reusable.
+Other sessions' unresolved candidates continue to block fresh work.
+
+The removal wrapper uses a fresh Store cache over the same DB, not an arbitrary
+caller-supplied writer. Tests also reproduce a stale original Store cache
+reinserting the removed session while adding a replacement: reconciliation
+rejects that actual DB state until removal is retried. This is **not** a remedy
+for every upstream read-modify-write race or resurrection after reconciliation.
+The absence/expiry observation holds at reconciliation's transaction boundary,
+not as a permanent no-resurrection guarantee. Fixture account/token IDs are not
+authentication, and closed symbolic records are not revoked real Grants.
+
+Existing Memos HTTP auth callers are still unwrapped. Only this explicitly
+participating test control path persists withdrawal intent before its writer;
+the experiment does not qualify host-wide failed-logout safety.
 
 ## Reproduce on an isolated clean checkout
 
@@ -56,7 +90,8 @@ CI checks out pinned upstream and applies exactly the retained overlay.
 
 Local validation on 2026-09-30 UTC: the retained overlay passed race-enabled
 targeted tests and tagged `go vet` on a clean pinned upstream checkout with Go
-1.27.1 (six top-level tests, seven storage invalidation subcases). Ordinary
+1.27.1 (13 top-level tests, seven storage invalidation and five reconciliation
+failure subcases). Ordinary
 untagged SQLite package tests also passed. SDK check passed 449 tests plus
 consumer/prototype checks; build and npm pack dry-run passed. Applying the
 overlay a second time correctly rejected the now-dirty checkout. Local
@@ -72,7 +107,8 @@ that mutation and invalidation roll back together and errors propagate.
 
 This is storage-path evidence only. Tests do not invoke HTTP SignOut/RefreshToken,
 authenticate a real User or exercise UI/consent. Upstream HTTP success can still
-hide session persistence failure; host-wide freeze/reconciliation remains open.
+hide session persistence failure; host-wide adoption of the selected
+freeze/reconciliation path remains open.
 Triggers must remain present, in the selected SQLite database; no claims cover
 other databases, deployment migrations, trigger removal/schema replacement,
 external identity/policy or full writer qualification. No process crash test or

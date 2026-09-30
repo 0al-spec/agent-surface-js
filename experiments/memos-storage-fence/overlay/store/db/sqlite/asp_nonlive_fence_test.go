@@ -245,3 +245,255 @@ func TestNonLiveMemosFenceNotInstalledByDefault(t *testing.T) {
 		t.Fatal("non-live objects installed implicitly")
 	}
 }
+
+func TestNonLiveMemosFenceFailedWithdrawalAndRetry(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	ref := f.candidate(t)
+	intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.db.db.Exec("CREATE TRIGGER fail_removal BEFORE UPDATE ON user_setting BEGIN SELECT RAISE(ABORT,'fixture failure'); END"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.removeSession(t.Context(), intent); err == nil {
+		t.Fatal("writer failure hidden")
+	}
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err == nil {
+		t.Fatal("active session reconciled")
+	}
+	if err := f.fence.attempt(t.Context(), ref, nil); !errors.Is(err, errNonLiveRejected) {
+		t.Fatal(err)
+	}
+	if _, err := f.fence.retain(t.Context(), f.userID, "fixture-session"); err == nil {
+		t.Fatal("freeze bypassed")
+	}
+	if _, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session"); err == nil {
+		t.Fatal("duplicate intent replaced")
+	}
+	f.state(t, ref, "attempted")
+	f.count(t, 0)
+	if _, err := f.db.db.Exec("DROP TRIGGER fail_removal"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.removeSession(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	// Successful writer return is not reconciliation; add an independent session.
+	if err := f.store.AddUserRefreshToken(t.Context(), f.userID, &storepb.RefreshTokensUserSetting_RefreshToken{TokenId: "new-session", ExpiresAt: timestamppb.New(f.now.Add(time.Hour))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.fence.retain(t.Context(), f.userID, "new-session"); err == nil {
+		t.Fatal("writer return unfroze account")
+	}
+	// The original Store's stale cache reinserted the removed session while
+	// adding its replacement. Reconciliation must see and reject that reality.
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err == nil {
+		t.Fatal("stale-cache resurrection accepted as session withdrawal")
+	}
+	if err := f.fence.removeSession(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	f.state(t, ref, "closed")
+	if err := f.fence.attempt(t.Context(), ref, nil); !errors.Is(err, errNonLiveRejected) {
+		t.Fatal(err)
+	}
+	// Later actual writes must not resurrect terminal candidates.
+	role := store.RoleAdmin
+	if _, err := f.store.UpdateUser(t.Context(), &store.UpdateUser{ID: f.userID, Role: &role}); err != nil {
+		t.Fatal(err)
+	}
+	f.state(t, ref, "closed")
+	fresh, err := f.fence.retain(t.Context(), f.userID, "new-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.attempt(t.Context(), fresh, nil); err != nil {
+		t.Fatal(err)
+	}
+	f.count(t, 1)
+}
+
+func TestNonLiveMemosFenceWithdrawalSurvivesReopen(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	// No candidate is needed for the durable host freeze.
+	intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	driver, err := NewDB(f.profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := driver.(*DB)
+	t.Cleanup(func() { db.Close() })
+	reopened, err := installNonLiveMemosFence(t.Context(), db, func() time.Time { return f.now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.retain(t.Context(), f.userID, "fixture-session"); err == nil {
+		t.Fatal("reopen cleared freeze")
+	}
+	if err := reopened.removeSession(t.Context(), intent); !errors.Is(err, errNonLiveRejected) {
+		t.Fatal("foreign owner accepted", err)
+	}
+	recovered, err := reopened.resumeWithdrawal(t.Context(), f.userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recovered.id != intent.id {
+		t.Fatal("intent reminted")
+	}
+	if err := reopened.removeSession(t.Context(), recovered); err != nil {
+		t.Fatal(err)
+	}
+	if err := reopened.reconcileWithdrawal(t.Context(), recovered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.resumeWithdrawal(t.Context(), f.userID); err == nil {
+		t.Fatal("terminal intent resumed")
+	}
+}
+
+func TestNonLiveMemosFenceReconciliationFailsClosed(t *testing.T) {
+	for _, kind := range []string{"malformed", "unknown-fields", "missing-expiry", "unavailable", "cancelled"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newNonLiveMemosFixture(t)
+			intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx := t.Context()
+			switch kind {
+			case "malformed":
+				_, err = f.db.db.Exec("UPDATE user_setting SET value='{' WHERE user_id=? AND key='REFRESH_TOKENS'", f.userID)
+			case "unknown-fields":
+				_, err = f.db.db.Exec(`UPDATE user_setting SET value='{"unsupportedTokens":[]}' WHERE user_id=? AND key='REFRESH_TOKENS'`, f.userID)
+			case "missing-expiry":
+				_, err = f.db.db.Exec(`UPDATE user_setting SET value='{"refreshTokens":[{"tokenId":"fixture-session"}]}' WHERE user_id=? AND key='REFRESH_TOKENS'`, f.userID)
+			case "unavailable":
+				_, err = f.db.db.Exec("ALTER TABLE user_setting RENAME TO unavailable_setting")
+			case "cancelled":
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := f.fence.reconcileWithdrawal(ctx, intent); err == nil {
+				t.Fatal("unavailable evidence unfroze account")
+			}
+			var state string
+			if err := f.db.db.QueryRow("SELECT state FROM asp_nonlive_withdrawal WHERE id=?", intent.id).Scan(&state); err != nil {
+				t.Fatal(err)
+			}
+			if state != "frozen" {
+				t.Fatal(state)
+			}
+			f.count(t, 0)
+		})
+	}
+}
+
+func TestNonLiveMemosFenceReconciliationDoesNotCloseOtherSessions(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	if err := f.store.AddUserRefreshToken(t.Context(), f.userID, &storepb.RefreshTokensUserSetting_RefreshToken{TokenId: "other", ExpiresAt: timestamppb.New(f.now.Add(time.Hour))}); err != nil {
+		t.Fatal(err)
+	}
+	other, err := f.fence.retain(t.Context(), f.userID, "other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.attempt(t.Context(), other, nil); err != nil {
+		t.Fatal(err)
+	}
+	intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.removeSession(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	f.state(t, other, "revocation_required")
+	if _, err := f.fence.retain(t.Context(), f.userID, "other"); err == nil {
+		t.Fatal("other session's unresolved publication bypassed")
+	}
+	f.count(t, 1)
+}
+
+func TestNonLiveMemosFenceReconciliationExpiry(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	ref := f.candidate(t)
+	intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.fence.now = func() time.Time { return f.now.Add(2 * time.Hour) }
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	f.state(t, ref, "closed")
+	if _, err := f.fence.retain(t.Context(), f.userID, "fixture-session"); err == nil {
+		t.Fatal("expired session retained")
+	}
+	f.count(t, 0)
+}
+
+func TestNonLiveMemosFenceFreezeAcrossHandles(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	ref := f.candidate(t)
+	driver, err := NewDB(f.profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := driver.(*DB)
+	t.Cleanup(func() { db.Close() })
+	second, err := installNonLiveMemosFence(t.Context(), db, func() time.Time { return f.now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := second.retain(t.Context(), f.userID, "fixture-session"); err == nil {
+		t.Fatal("second handle bypassed freeze")
+	}
+	// Reconstruct only the test-private candidate view, not a public capability.
+	if err := second.attempt(t.Context(), &nonLiveMemosCandidate{owner: second, id: ref.id}, nil); !errors.Is(err, errNonLiveRejected) {
+		t.Fatal(err)
+	}
+	f.count(t, 0)
+}
+
+func TestNonLiveMemosFenceReconciliationRollback(t *testing.T) {
+	f := newNonLiveMemosFixture(t)
+	ref := f.candidate(t)
+	intent, err := f.fence.beginWithdrawal(t.Context(), f.userID, "fixture-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.removeSession(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.db.db.Exec("CREATE TRIGGER fail_reconcile BEFORE UPDATE ON asp_nonlive_withdrawal BEGIN SELECT RAISE(ABORT,'fixture failure'); END"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.fence.reconcileWithdrawal(t.Context(), intent); err == nil {
+		t.Fatal("failed reconciliation accepted")
+	}
+	f.state(t, ref, "attempted")
+	if _, err := f.fence.resumeWithdrawal(t.Context(), f.userID); err != nil {
+		t.Fatal("freeze rolled back incorrectly", err)
+	}
+	f.count(t, 0)
+}
