@@ -84,6 +84,21 @@ Existing Memos HTTP auth callers are still unwrapped. Only this explicitly
 participating test control path persists withdrawal intent before its writer;
 the experiment does not qualify host-wide failed-logout safety.
 
+## Planned host follow-up gates
+
+The plan in [`memos-session-issuance-fence.md`](../../docs/plans/memos-session-issuance-fence.md#planned-memos-host-follow-up-gates)
+tracks the next work in dependency order:
+
+1. Qualify a transaction-scoped refresh writer that preserves unrelated live
+   sessions across independent writers and fails atomically under injected errors.
+2. Adopt withdrawal intent/reconciliation in the existing sign-out, refresh,
+   sign-in persistence and password/session-change paths, with explicit failure,
+   retry and restart behavior.
+
+The present tombstone guard prevents re-adding a withdrawn session ID. It does
+not prevent stale generic writers from losing other, non-tombstoned sessions.
+Neither follow-up is implemented by this overlay.
+
 ## Reproduce on an isolated clean checkout
 
 Use Go 1.27.1 and a disposable checkout of the exact commit above, not a running
