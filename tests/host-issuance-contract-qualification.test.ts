@@ -457,6 +457,32 @@ describe('non-live host issuance contract qualification model', () => {
     expectNoAuthorityPublication(unsupported);
   });
 
+  it('freezes a committed but undelivered record after retained-state restart', () => {
+    const model = new NonLiveHostIssuanceContractModel();
+    const pendingDelivery = approved(model);
+    model.commit(pendingDelivery.reference, pendingDelivery.decisions);
+
+    model.recoverAfterRestart('retain-state');
+
+    expect(model.observe(pendingDelivery.reference)).toMatchObject({
+      symbolicCommitCount: 1,
+      recordStatus: 'frozen',
+      recordConsumed: true,
+      recordNeedsRevocation: true,
+    });
+    expect(() =>
+      model.deliverPrivately(pendingDelivery.reference, 'acknowledged'),
+    ).toThrow(/^symbolic_delivery_not_eligible$/);
+    expect(() => model.approveCurrentMaterial()).toThrow(
+      /^symbolic_authority_frozen_pending_revocation$/,
+    );
+
+    model.confirmRevocation(pendingDelivery.reference);
+    const fresh = approved(model);
+    model.commit(fresh.reference, fresh.decisions);
+    expect(model.observe(fresh.reference).symbolicCommitCount).toBe(2);
+  });
+
   it('keeps retained delivered records in the invalidation/revocation fence after restart', () => {
     const model = new NonLiveHostIssuanceContractModel();
     const delivered = approved(model);

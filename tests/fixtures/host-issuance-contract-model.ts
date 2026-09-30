@@ -286,7 +286,16 @@ export class NonLiveHostIssuanceContractModel {
       this.#trace.push('restart-invalidated-old-epoch-symbolically');
       return;
     }
-    // Retaining state never silently clears unresolved delivery/revocation state.
+    // A commit whose private handoff did not finish has uncertain custody after
+    // restart. Freeze it until revocation is confirmed; verifier state cannot
+    // reconstruct or prove that the raw credential was never delivered.
+    for (const record of this.#records) {
+      if (record.status !== 'committed' || !record.consumed) continue;
+      record.status = 'frozen';
+      record.needsRevocation = true;
+      this.#trace.push('restart-froze-undelivered-commit');
+    }
+    // Retaining state never silently clears existing delivery/revocation state.
     this.#trace.push('restart-retained-symbolic-state');
   }
 
