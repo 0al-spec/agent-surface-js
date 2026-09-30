@@ -85,7 +85,9 @@ These are obligations to resolve with the host owner, not public SDK types.
 
 ## Next slice and exit evidence
 
-Next deliverable: a **design-only Memos session/account fence contract**, with
+The proposed [Memos session/account fence contract](memos-session-issuance-fence.md)
+records the next design layer and its unresolved implementation gates.
+Its intended deliverable is a **design-only Memos session/account fence contract**, with
 a producer/writer map and sequence diagrams for both invalidation-before-commit
 and commit-before-invalidation. Do not start a live adapter implementation.
 
