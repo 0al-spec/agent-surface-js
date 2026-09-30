@@ -133,6 +133,9 @@ equal or earlier expiration. See the
 [supported relation and limits](docs/offline-request-grant-composition.md).
 This checks representation and attenuation, not consent, issuance or current authority.
 Resource filters remain unsupported; no new authority path is introduced.
+The proposed next slice is non-live host-contract qualification for authenticated
+principal, exact consent and issuance fencing; see the
+[consent-bound issuance plan](docs/plans/consent-approved-request-issuance-slice.md).
 
 The package is not published yet. General manifest validation, consent/issuance,
 Grant/session state, admission, browser support and transports remain future behavior. Calcu will
