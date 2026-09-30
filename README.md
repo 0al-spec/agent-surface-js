@@ -136,6 +136,9 @@ Resource filters remain unsupported; no new authority path is introduced.
 The proposed next slice is non-live host-contract qualification for authenticated
 principal, exact consent and issuance fencing; see the
 [consent-bound issuance plan](docs/plans/consent-approved-request-issuance-slice.md).
+The [host-adapter inventory](docs/plans/host-auth-adapter-selection.md) selects
+Memos account/session lifecycle for further design only; no live adapter or
+issuance fence is qualified.
 
 The package is not published yet. General manifest validation, consent/issuance,
 Grant/session state, admission, browser support and transports remain future behavior. Calcu will
