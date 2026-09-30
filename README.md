@@ -139,6 +139,8 @@ principal, exact consent and issuance fencing; see the
 The [host-adapter inventory](docs/plans/host-auth-adapter-selection.md) selects
 Memos account/session lifecycle for further design only; no live adapter or
 issuance fence is qualified.
+The symbolic qualification's scope and remaining host gates are tracked in the
+[non-live qualification report](docs/host-contract-qualification.md).
 
 The package is not published yet. General manifest validation, consent/issuance,
 Grant/session state, admission, browser support and transports remain future behavior. Calcu will
