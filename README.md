@@ -124,6 +124,16 @@ This is immutable representation and integrity validation. It does not issue a
 Grant or credential, authenticate identity or consent, consult current authority
 state, start a session, admit an action or enforce the declared handling policy.
 
+## Offline request–Grant composition
+
+`OfflineRequestGrantComposition` composes the complete request and selected Grant
+validators against the same retained manifest and host expectations. It rejects
+expiration extension, including sub-millisecond differences, while allowing an
+equal or earlier expiration. See the
+[supported relation and limits](docs/offline-request-grant-composition.md).
+This checks representation and attenuation, not consent, issuance or current authority.
+Resource filters remain unsupported; no new authority path is introduced.
+
 The package is not published yet. General manifest validation, consent/issuance,
 Grant/session state, admission, browser support and transports remain future behavior. Calcu will
 integrate supported SDK slices incrementally, not implement the complete RFC

@@ -3,10 +3,12 @@ import {
   CanonicalObjectHash,
   JsonDocument,
   OfflineProposalManifest,
+  OfflineRequestGrantComposition,
   type OfflineSchemaResource,
   OfflineSchemaResources,
   OfflineSelectedGrant,
   type OfflineSelectedGrantExpectations,
+  OfflineSemanticGrantRequest,
   type PreparedOfflineProposalManifest,
   SurfaceSnapshot,
 } from '../src/index.js';
@@ -335,6 +337,318 @@ function candidate(
     expected,
   );
 }
+
+function semanticRequest(grant: RecordValue, expiresAt: string): JsonDocument {
+  return json({
+    locations: grant.locations,
+    actions: grant.actions,
+    delegate: grant.delegate,
+    resource_server: grant.resource_server,
+    scopes: grant.scopes,
+    constraints: {
+      expires_at: expiresAt,
+      credential_release: { mode: 'deny' },
+    },
+    credential_profile: grant.credential_profile,
+    audit: grant.audit,
+  });
+}
+
+describe('OfflineRequestGrantComposition', () => {
+  const value = fixture(
+    'https://composition.example.invalid',
+    'composition.propose',
+    'composition.scope',
+  );
+
+  function composition(requestExpiry: string, grantExpiry: string) {
+    const grant = grantValue(value);
+    (grant.constraints as RecordValue).expires_at = grantExpiry;
+    return new OfflineRequestGrantComposition(
+      semanticRequest(grant, requestExpiry),
+      grantDocument(grant),
+      preparedManifest(value),
+      expectations(value),
+    );
+  }
+
+  it.each([
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00Z'],
+    ['2000-01-01T00:00:00Z', '1999-12-31T23:59:59Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T01:00:00+01:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00-00:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00-00:00'],
+    ['2000-01-01T00:00:00.1234Z', '2000-01-01T00:00:00.123400Z'],
+    ['2000-01-01T00:00:00.0002Z', '2000-01-01T00:00:00.0001Z'],
+    ['2000-01-01T00:00:00.0002-00:00', '2000-01-01T00:00:00.0001Z'],
+    ['2000-01-01T00:00:00.0002Z', '2000-01-01T00:00:00.0001-00:00'],
+    ['2000-01-01T00:00:00Z', '2000-01-01t00:00:00z'],
+  ])('accepts equal or shorter instants: %s / %s', (request, grant) => {
+    expect(() => composition(request, grant).validate()).not.toThrow();
+  });
+
+  it.each([
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:01Z'],
+    ['2000-01-01T00:00:00.0001Z', '2000-01-01T00:00:00.0002Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00.000000001Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00-01:00'],
+    ['2000-01-01T00:00:00-00:00', '2000-01-01T00:00:00.000000001Z'],
+    ['2000-01-01T00:00:00Z', '2000-01-01T00:00:00.000000001-00:00'],
+  ])('rejects later instants: %s / %s', (request, grant) => {
+    expect(() => composition(request, grant).validate()).toThrow(
+      /^grant_expiry_exceeds_request$/,
+    );
+  });
+
+  it('rejects an extension even when both component validators pass', () => {
+    const grant = grantValue(value);
+    const request = semanticRequest(grant, '1999-12-31T23:59:59Z');
+    const manifest = preparedManifest(value);
+    const expected = expectations(value);
+    expect(() =>
+      new OfflineSemanticGrantRequest(request, manifest, expected).prepare(),
+    ).not.toThrow();
+    expect(() =>
+      new OfflineSelectedGrant(
+        grantDocument(grant),
+        manifest,
+        expected,
+      ).prepare(),
+    ).not.toThrow();
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        request,
+        grantDocument(grant),
+        manifest,
+        expected,
+      ).validate(),
+    ).toThrow(/^grant_expiry_exceeds_request$/);
+  });
+
+  it('works with a second unrelated application', () => {
+    const other = fixture(
+      'https://other.invalid',
+      'other.propose',
+      'other.scope',
+    );
+    const grant = grantValue(other);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        semanticRequest(grant, '2001-01-01T00:00:00Z'),
+        grantDocument(grant),
+        preparedManifest(other),
+        expectations(other),
+      ).validate(),
+    ).not.toThrow();
+  });
+
+  it.each([
+    'actions',
+    'scopes',
+    'locations',
+    'delegate',
+    'resource_server',
+  ])('rejects a changed request binding: %s', (field) => {
+    const grant = grantValue(value);
+    const request = semanticRequest(
+      grant,
+      '2001-01-01T00:00:00Z',
+    ).parse() as RecordValue;
+    request[field] =
+      field === 'delegate' || field === 'resource_server' ? {} : ['other'];
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        json(request),
+        grantDocument(grant),
+        preparedManifest(value),
+        expectations(value),
+      ).validate(),
+    ).toThrow();
+  });
+
+  it.each([
+    (grant: RecordValue) => {
+      grant.subject = { user: 'other' };
+    },
+    (grant: RecordValue) => {
+      grant.actions = ['other'];
+    },
+    (grant: RecordValue) => {
+      grant.data_exposure = [];
+    },
+    (grant: RecordValue) => {
+      grant.credential_profile = 'proof_bound';
+    },
+    (grant: RecordValue) => {
+      (grant.constraints as RecordValue).repositories = ['x'];
+    },
+    (grant: RecordValue) => {
+      (grant.constraints as RecordValue).credential_release = { mode: 'allow' };
+    },
+  ])('rejects rehashed invalid Grant authority', (mutate) => {
+    const grant = grantValue(value);
+    const request = semanticRequest(grant, '2001-01-01T00:00:00Z');
+    mutate(grant);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        request,
+        grantDocument(grant),
+        preparedManifest(value),
+        expectations(value),
+      ).validate(),
+    ).toThrow();
+  });
+
+  it('reads original document text rather than overridden parse behavior', () => {
+    class AlternateDocument extends JsonDocument {
+      override parse(): unknown {
+        return grantValue(value);
+      }
+    }
+    const grant = grantValue(value);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        semanticRequest(grant, '2001-01-01T00:00:00Z'),
+        new AlternateDocument('{"grant_id":"x","grant_id":"y"}'),
+        preparedManifest(value),
+        expectations(value),
+      ).validate(),
+    ).toThrow(/^duplicate_json_member$/);
+  });
+
+  it('captures expectation scalars and keeps construction inert', () => {
+    const grant = grantValue(value);
+    const expected = { ...expectations(value) };
+    const manifest = preparedManifest(value);
+    const request = semanticRequest(grant, '2001-01-01T00:00:00Z');
+    const document = grantDocument(grant);
+    const parse = vi.spyOn(JsonDocument.prototype, 'parse');
+    const check = new OfflineRequestGrantComposition(
+      request,
+      document,
+      manifest,
+      expected,
+    );
+    expect(parse).not.toHaveBeenCalled();
+    parse.mockRestore();
+    expected.subjectUser = 'changed';
+    expect(() => check.validate()).not.toThrow();
+    expect(() => check.validate()).not.toThrow();
+  });
+
+  it.each([
+    'credentialAudience',
+    'runtimeId',
+    'agentId',
+    'subjectUser',
+  ] as const)('rejects an incorrect host expectation: %s', (field) => {
+    const grant = grantValue(value);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        semanticRequest(grant, '2001-01-01T00:00:00Z'),
+        grantDocument(grant),
+        preparedManifest(value),
+        expectations(value, { [field]: 'other' }),
+      ).validate(),
+    ).toThrow();
+  });
+
+  it('rejects a changed expected identity', () => {
+    const grant = grantValue(value);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        semanticRequest(grant, '2001-01-01T00:00:00Z'),
+        grantDocument(grant),
+        preparedManifest(value),
+        expectations(value, {
+          identityEvidence: json({ ...value.evidence, subject: 'other' }),
+        }),
+      ).validate(),
+    ).toThrow();
+  });
+
+  it('rejects a stale Grant hash and malformed request expiration', () => {
+    const grant = grantValue(value);
+    const stale = grantDocument(grant).parse() as RecordValue;
+    stale.grant_id = 'changed';
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        semanticRequest(grant, '2001-01-01T00:00:00Z'),
+        json(stale),
+        preparedManifest(value),
+        expectations(value),
+      ).validate(),
+    ).toThrow();
+    expect(() =>
+      composition('2000-02-30T00:00:00Z', '2000-01-01T00:00:00Z').validate(),
+    ).toThrow();
+  });
+
+  it.each([
+    'request',
+    'grant',
+    'identity',
+  ] as const)('rejects oversized %s source before any document is parsed, despite an overridden byte length', (oversizedInput) => {
+    class UnderreportedDocument extends JsonDocument {
+      override utf8ByteLength(): number {
+        return 1;
+      }
+    }
+    const grant = grantValue(value);
+    const request = semanticRequest(grant, '2001-01-01T00:00:00Z');
+    const grantSource = grantDocument(grant);
+    const expected = expectations(value);
+    const oversized = new UnderreportedDocument(
+      JSON.stringify({ padding: 'x'.repeat(256 * 1024) }),
+    );
+    const manifest = preparedManifest(value);
+    const checked = new OfflineRequestGrantComposition(
+      oversizedInput === 'request' ? oversized : request,
+      oversizedInput === 'grant' ? oversized : grantSource,
+      manifest,
+      oversizedInput === 'identity'
+        ? { ...expected, identityEvidence: oversized }
+        : expected,
+    );
+    const parse = vi.spyOn(JsonDocument.prototype, 'parse');
+    try {
+      expect(() => checked.validate()).toThrow(/^json_byte_limit$/);
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it('accepts a source exactly at the snapshot byte limit', () => {
+    const grant = grantValue(value);
+    const requestText = JSON.stringify({
+      locations: grant.locations,
+      actions: grant.actions,
+      delegate: grant.delegate,
+      resource_server: grant.resource_server,
+      scopes: grant.scopes,
+      constraints: {
+        expires_at: '2001-01-01T00:00:00Z',
+        credential_release: { mode: 'deny' },
+      },
+      credential_profile: grant.credential_profile,
+      audit: grant.audit,
+    });
+    const atLimit = new JsonDocument(
+      requestText + ' '.repeat(256 * 1024 - Buffer.byteLength(requestText)),
+    );
+    expect(atLimit.utf8ByteLength()).toBe(256 * 1024);
+    expect(() =>
+      new OfflineRequestGrantComposition(
+        atLimit,
+        grantDocument(grant),
+        preparedManifest(value),
+        expectations(value),
+      ).validate(),
+    ).not.toThrow();
+  });
+});
 
 function changedGrant(
   value: ReturnType<typeof fixture>,
