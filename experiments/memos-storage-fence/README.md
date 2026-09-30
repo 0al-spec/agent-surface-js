@@ -42,7 +42,7 @@ The opt-in test control path adds an explicit sequence:
 
 ```text
 beginWithdrawal → durable account freeze + invalidation
-removeSession   → actual Store.RemoveUserRefreshToken (may fail; freeze remains)
+removeSession   → transaction-scoped real refresh-setting write (freeze remains)
 reconcileWithdrawal → transaction reads exact session absence/expiry
                     → closes only its symbolic candidates + reconciles intent
 ```
@@ -57,14 +57,28 @@ and SQL failures leave the freeze intact. Closing candidates and reconciling
 the intent share one transaction. Closed references never become reusable.
 Other sessions' unresolved candidates continue to block fresh work.
 
-The removal wrapper uses a fresh Store cache over the same DB, not an arbitrary
-caller-supplied writer. Tests also reproduce a stale original Store cache
-reinserting the removed session while adding a replacement: reconciliation
-rejects that actual DB state until removal is retried. This is **not** a remedy
-for every upstream read-modify-write race or resurrection after reconciliation.
-The absence/expiry observation holds at reconciliation's transaction boundary,
-not as a permanent no-resurrection guarantee. Fixture account/token IDs are not
-authentication, and closed symbolic records are not revoked real Grants.
+The selected `addSession` and `removeSession` fixture writers read the actual
+protobuf JSON and write the real setting in one immediate SQLite transaction,
+without Store caches or caller-supplied writer callbacks. `addSession` validates
+active account, freeze, token expiry, duplicate IDs and withdrawal history; it
+clones the caller's protobuf token. These are fixture operations, not sign-in.
+
+Persistent withdrawal rows also serve as tombstones: reconciled intents are not
+deleted, and their exact account/session IDs cannot be reused. Opt-in BEFORE
+INSERT/UPDATE triggers reject writes carrying those IDs. Both protobuf JSON field
+spellings are checked. The stale original Store's attempted resurrection now
+fails at the DB write, including after reconciliation and refresh-setting deletion.
+The guarded writer reads strict protobuf JSON; unsupported fields cannot silently
+become absent authority. Its failed write/invalidation transaction rolls back.
+
+Concurrent selected add operations on independent handles preserve both additions.
+This does **not** fix unrelated upstream cached read-modify-write operations or
+prevent generic writers losing unrelated, non-tombstoned tokens. Existing HTTP
+writers remain unwrapped; full rotation/password/session-writer qualification is
+still open. Guards require this database's retained tombstones/triggers: schema
+replacement, guard removal, privileged history deletion and other DB backends are
+outside the experiment. Fixture IDs are not authentication, and closing symbolic
+records is not revocation of real Grants.
 
 Existing Memos HTTP auth callers are still unwrapped. Only this explicitly
 participating test control path persists withdrawal intent before its writer;
@@ -90,8 +104,8 @@ CI checks out pinned upstream and applies exactly the retained overlay.
 
 Local validation on 2026-09-30 UTC: the retained overlay passed race-enabled
 targeted tests and tagged `go vet` on a clean pinned upstream checkout with Go
-1.27.1 (13 top-level tests, seven storage invalidation and five reconciliation
-failure subcases). Ordinary
+1.27.1 (16 top-level tests, seven storage invalidation, five reconciliation
+failure and four generic writer guard subcases). Ordinary
 untagged SQLite package tests also passed. SDK check passed 449 tests plus
 consumer/prototype checks; build and npm pack dry-run passed. Applying the
 overlay a second time correctly rejected the now-dirty checkout. Local
