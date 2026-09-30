@@ -57,7 +57,10 @@ same database. Exact schema/API remains open. Required behavior:
 
 1. Take the selected database's write-serialization boundary before final
    authoritative reads. Qualify a transaction mode equivalent to SQLite
-   immediate write acquisition; existing `BeginTx` alone is not proof of this.
+   immediate write acquisition. Subsequent inspection found pinned Memos
+   `store/db/sqlite/sqlite.go` already sets `_txlock=immediate` in its DSN.
+   That supplies a concrete configuration to reuse, not proof that all
+   authority checks and publication currently share one transaction.
 2. Read User/session directly in that transaction: account exists and is active,
    exact session exists, versions match, deadlines hold. Check retained exact
    material and both authenticated decisions. In-memory values/caches can aid
@@ -127,6 +130,9 @@ where material changed; the old approved record is never repaired.
 | Generic settings/account writer, direct SQL or second process bypass | Refuse qualification unless writer coverage/topology restriction is actually enforced. |
 | Restart with retained state or old-credential invalidation fallback | Prove actual enforcement-point behavior separately; otherwise startup/issuance blocked. |
 
+An isolated [SQLite experiment](../../experiments/sqlite-host-fence/README.md)
+now exercises a subset against actual temporary SQLite transactions and
+normalized fixture rows, not Memos tables/writers. It is not host qualification.
 No new Memos robustness tests or live probes were run. Above vectors are planned
 acceptance evidence, not test results. Existing symbolic tests cannot establish
 SQLite durability, full writer coverage or authenticated consent.
