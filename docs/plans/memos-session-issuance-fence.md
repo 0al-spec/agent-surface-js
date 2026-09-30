@@ -142,17 +142,23 @@ remains planned evidence; selected storage tests do not establish full writer
 coverage, authenticated consent or external invalidation ordering.
 
 The next non-live overlay slice implements a **selected test withdrawal path**:
-persist freeze before calling the actual removal writer, retain it on failure
+persist freeze before the selected real-setting removal writer, retain it on failure
 or merely successful return, and reconcile only on authoritative exact-session
 absence/valid expiry. Its durable intent survives database reopen; reconciliation
 closes only that session's symbolic candidates atomically and cannot repair an
 old reference. Other unresolved sessions remain blocking. Tests reproduce
 stale-cache token resurrection and reject reconciliation in that state, as well
 as malformed/unknown evidence, unavailable storage and reconciliation rollback.
-These results do not wrap existing HTTP auth routes or prove all-writer safety;
-session resurrection after reconciliation and upstream read-modify-write ordering
-still require a separate writer-contract decision. No real Grant or credential
-revocation is inferred from closing symbolic experiment records.
+The next overlay layer makes selected add/remove read-modify-write operations
+transaction-scoped and cache-independent. Durable withdrawal intents become
+account/session tombstones; DB write guards reject their resurrection through
+stale Store or generic refresh-setting upserts, even after reconciliation.
+Independent selected add writers retain both additions; failure rolls back the
+setting write and its invalidation. These results do not wrap existing HTTP auth
+routes or prove all-writer safety: unrelated generic cached writes can still
+lose non-tombstoned sessions, and complete rotation/password writer ordering,
+deployment/schema lifecycle and host adoption remain unresolved. No real Grant
+or credential revocation is inferred from symbolic experiment records.
 
 ## Remaining gates and next decision
 
@@ -162,9 +168,9 @@ transaction-scoped storage, durable single-attempt handling, valid-through-commi
 deadline proof, two exact consent lifecycles, Runtime registration, external
 identity/policy ordering, private delivery/custody and current Action enforcement.
 
-Next bounded decision: qualify a non-live refresh-setting writer contract that
-prevents stale-cache/read-modify-write resurrection, then determine how existing
-host auth callers would adopt withdrawal intent. Do not activate live issuance
+Next bounded decision: review the accumulated non-live stack and determine how
+existing host auth callers would adopt withdrawal intent and transaction-scoped
+refresh writers, including rotation/password failure semantics. Do not activate live issuance
 or add a parallel auth registry that cannot fence those writers. Preserve the
 SDK source lock and canonical ADP status.
 All normative obligations remain in the

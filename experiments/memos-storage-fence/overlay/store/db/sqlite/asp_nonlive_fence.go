@@ -11,8 +11,8 @@ import (
 	"time"
 
 	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var errNonLiveRejected = errors.New("non-live candidate rejected")
@@ -76,6 +76,29 @@ func installNonLiveMemosFence(ctx context.Context, db *DB, now func() time.Time)
 			return nil, err
 		}
 	}
+	// Persistent withdrawal rows are tombstones even after reconciliation.
+	// Guard both protojson spellings; OR (not COALESCE) checks either ID alias.
+	// Existing Store caches and generic upserts cannot reinsert withdrawn IDs.
+	for _, event := range []string{"INSERT", "UPDATE"} {
+		name := "asp_nonlive_no_resurrection_" + event
+		if _, err := tx.ExecContext(ctx, "DROP TRIGGER IF EXISTS "+name); err != nil {
+			return nil, err
+		}
+		statement := fmt.Sprintf(`CREATE TRIGGER %s BEFORE %s ON user_setting
+ WHEN NEW.key='REFRESH_TOKENS' BEGIN
+ SELECT CASE WHEN NOT json_valid(NEW.value) THEN RAISE(ABORT,'invalid refresh evidence') END;
+ SELECT CASE WHEN EXISTS (
+ SELECT 1 FROM asp_nonlive_withdrawal w JOIN (
+ SELECT value FROM json_each(NEW.value,'$.refreshTokens') UNION ALL
+ SELECT value FROM json_each(NEW.value,'$.refresh_tokens')) token
+ WHERE w.user_id=NEW.user_id AND
+ (json_extract(token.value,'$.tokenId')=w.session_id OR json_extract(token.value,'$.token_id')=w.session_id)
+ ) THEN RAISE(ABORT,'withdrawn session cannot be restored') END;
+ END`, name, event)
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return nil, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -96,7 +119,7 @@ func (f *nonLiveMemosFence) currentSession(ctx context.Context, tx *sql.Tx, user
 		return 0, errNonLiveRejected
 	}
 	tokens := &storepb.RefreshTokensUserSetting{}
-	if err := protojsonUnmarshaler.Unmarshal([]byte(raw), tokens); err != nil {
+	if err := (protojson.UnmarshalOptions{}).Unmarshal([]byte(raw), tokens); err != nil {
 		return 0, errNonLiveRejected
 	}
 	for _, token := range tokens.RefreshTokens {
@@ -276,7 +299,7 @@ func (f *nonLiveMemosFence) resumeWithdrawal(ctx context.Context, userID int32) 
 	return &nonLiveMemosWithdrawal{owner: f, id: id}, nil
 }
 
-// removeSession uses the actual upstream Store writer with a fresh cache. Its
+// removeSession uses the same real setting/upsert SQL in one immediate transaction. Its
 // return value NEVER clears the freeze. It is safe to retry session removal,
 // not an issuance attempt; reconciliation is a separate authoritative read.
 func (f *nonLiveMemosFence) removeSession(ctx context.Context, ref *nonLiveMemosWithdrawal) error {
@@ -284,14 +307,108 @@ func (f *nonLiveMemosFence) removeSession(ctx context.Context, ref *nonLiveMemos
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 	userID, tokenID, err := f.withdrawal(ctx, tx, ref)
-	tx.Rollback()
 	if err != nil {
 		return err
 	}
-	writer := store.New(f.db, f.db.profile)
-	// Do not Close: this ephemeral Store borrows the fence's database handle.
-	return writer.RemoveUserRefreshToken(ctx, userID, tokenID)
+	tokens, err := f.refreshTokens(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
+	kept := &storepb.RefreshTokensUserSetting{}
+	for _, token := range tokens.RefreshTokens {
+		// Expired history must not carry an earlier tombstoned ID into a write.
+		if token.TokenId != tokenID && (token.ExpiresAt == nil || !token.ExpiresAt.IsValid() || token.ExpiresAt.AsTime().After(f.now())) {
+			kept.RefreshTokens = append(kept.RefreshTokens, token)
+		}
+	}
+	if err := f.writeRefreshTokens(ctx, tx, userID, kept); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return errNonLiveUncertain
+	}
+	return nil
+}
+
+func (f *nonLiveMemosFence) refreshTokens(ctx context.Context, tx *sql.Tx, userID int32) (*storepb.RefreshTokensUserSetting, error) {
+	var raw string
+	tokens := &storepb.RefreshTokensUserSetting{}
+	err := tx.QueryRowContext(ctx, "SELECT value FROM user_setting WHERE user_id=? AND key='REFRESH_TOKENS'", userID).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return tokens, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := (protojson.UnmarshalOptions{}).Unmarshal([]byte(raw), tokens); err != nil {
+		return nil, err
+	}
+	return tokens, nil
+}
+
+func (f *nonLiveMemosFence) writeRefreshTokens(ctx context.Context, tx *sql.Tx, userID int32, tokens *storepb.RefreshTokensUserSetting) error {
+	raw, err := (protojson.MarshalOptions{}).Marshal(tokens)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO user_setting(user_id,key,value) VALUES(?,'REFRESH_TOKENS',?)
+ ON CONFLICT(user_id,key) DO UPDATE SET value=EXCLUDED.value`, userID, string(raw))
+	return err
+}
+
+// addSession is a fixture writer, NOT authentication or production sign-in.
+// Read-modify-write and invalidation share the DB boundary; no Store cache is read.
+func (f *nonLiveMemosFence) addSession(ctx context.Context, userID int32, input *storepb.RefreshTokensUserSetting_RefreshToken) error {
+	if input == nil {
+		return errNonLiveRejected
+	}
+	token := proto.Clone(input).(*storepb.RefreshTokensUserSetting_RefreshToken)
+	if token.TokenId == "" || token.ExpiresAt == nil || !token.ExpiresAt.IsValid() || !token.ExpiresAt.AsTime().After(f.now()) {
+		return errNonLiveRejected
+	}
+	tx, err := f.db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var status string
+	if err := tx.QueryRowContext(ctx, "SELECT row_status FROM user WHERE id=?", userID).Scan(&status); err != nil {
+		return err
+	}
+	if status != "NORMAL" {
+		return errNonLiveRejected
+	}
+	var blocked int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM asp_nonlive_withdrawal
+ WHERE user_id=? AND (state='frozen' OR session_id=?)`, userID, token.TokenId).Scan(&blocked); err != nil {
+		return err
+	}
+	if blocked != 0 {
+		return errNonLiveRejected
+	}
+	tokens, err := f.refreshTokens(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
+	kept := &storepb.RefreshTokensUserSetting{}
+	for _, existing := range tokens.RefreshTokens {
+		if existing.TokenId == token.TokenId || existing.ExpiresAt == nil || !existing.ExpiresAt.IsValid() {
+			return errNonLiveRejected
+		}
+		if existing.ExpiresAt.AsTime().After(f.now()) {
+			kept.RefreshTokens = append(kept.RefreshTokens, existing)
+		}
+	}
+	kept.RefreshTokens = append(kept.RefreshTokens, token)
+	if err := f.writeRefreshTokens(ctx, tx, userID, kept); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return errNonLiveUncertain
+	}
+	return nil
 }
 
 // sessionWithdrawn distinguishes positive absence/expiry evidence from SQL or
