@@ -152,6 +152,9 @@ See the [architecture proposal](docs/architecture.md) for the target boundaries,
 Calcu integration map, modular security engines/adapters and idiomatic
 language/framework integration direction. These simplify integration, not
 mandatory guarantees, and describe future roles rather than implemented exports.
+Its [SDK responsibility scope](docs/architecture.md#sdk-responsibility-scope)
+distinguishes base mechanics, optional profile modules, host/application
+ownership and behavior outside the base package.
 
 [API design principles](docs/api-design-principles.md) describe the intended
 developer experience, inspired by Foundation Models ergonomics: one operation
