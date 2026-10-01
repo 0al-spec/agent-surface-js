@@ -94,6 +94,29 @@ The host must isolate untrusted agent code and protect the credential-bearing
 runtime; a malicious dependency in the same privileged process is outside the
 protection provided by TypeScript interfaces or private fields.
 
+## SDK responsibility scope
+
+This matrix describes the intended product boundary. It is not a list of
+implemented exports: the [README](../README.md) describes the current offline
+behavior, while the [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
+owns delivery status and ordering.
+
+| Scope category | SDK responsibility | Host/application responsibility and limits |
+| --- | --- | --- |
+| **Base SDK mechanics** | Implement reusable, deterministic mechanics for explicitly supported ASP contracts: strict boundary decoding, canonical values and hashes, schema/declaration validation, immutable bindings, and protocol diagnostics/vectors. | The application chooses and curates the surface and profile. A valid object, schema or hash is not identity, consent, authority or proof that an action is safe. |
+| **Optional profile modules and adapters** | Where selected, provide reusable issuer/admission/session state-machine behavior, transport and persistence adapters, identity-verifier integrations, typed authoring/framework bindings, and safe headless UI projections. | Optional means a deployment may not select that profile or integration. It never means a selected profile's mandatory check can be skipped. The composition must reject missing required mechanisms; no silent downgrade to weaker storage, verification or transport. |
+| **Host and application ownership** | Expose narrow interfaces and reusable mechanisms that consume trusted inputs and enforce the selected contract at the appropriate boundary. | The host owns principal and consent decisions, trust roots and policy configuration, key/store custody, deployment and isolation. The application owns business rules, data classification, resource access, state checks, handlers, and effect/transaction reconciliation. Declaring an action does not publish every method or grant access to application data. |
+| **Outside the base SDK** | Keep provider-neutral interfaces so a separately selected adapter can connect an agent, and permit an optional UI add-on if repeated consumers justify it. | Model/provider selection, prompts, agent planning and natural-language intent correctness are agent/application concerns. The base SDK does not discover database capabilities, infer actions or data classifications, promise provider-side retention/deletion behavior, or act as a sandbox. A future UI add-on must not issue authority, hold credentials, or turn a client-side approval flag into consent. |
+
+**Composition rule:** the host selects a supported profile and its modules as one
+validated composition. The SDK may provide the protocol mechanics, but the host
+supplies authoritative policy and state; the application independently checks
+its own boundary before domain behavior runs. Adding a declaration, provider
+tool or UI component does not expand a Grant. The application may also call an
+agent through an explicit runtime-mediated, Grant-bound interface; this does
+not expose arbitrary agent methods or let the application bypass runtime
+policy.
+
 ## Responsibilities and dependency direction
 
 | Component | Responsibility | Must not do |
