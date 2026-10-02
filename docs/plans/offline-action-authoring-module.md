@@ -1,7 +1,9 @@
 # Optional offline action authoring module
 
-Status: proposed design, 2026-10-02 UTC. No new exports, implemented signatures,
-source-lock update, live migration or certification claim are established here.
+Status: accepted design baseline, 2026-10-02 UTC. The first extraction and packed
+consumer qualification are implemented in the [optional authoring module](../offline-action-authoring.md).
+Calcu consumer migration, live activation and certification remain outside this
+slice; the source lock is unchanged.
 Delivery status stays in the upstream adoption backlog; this is a design slice,
 not a second tracker. Follow the [API principles](../api-design-principles.md)
 and [responsibility scope](../architecture.md#sdk-responsibility-scope).
@@ -48,10 +50,9 @@ tool exposure. Native application functions remain usable without ASP.
 
 ## Selected module boundary
 
-Proposed entry point: `@0al/agent-surface/authoring`, not a new repository or
-another language for configuration. The spelling and class names remain
-provisional until implementation/consumer tests qualify them. Nothing is
-re-exported from the base entry point as part of this design.
+Implemented entry point: `@0al/agent-surface/authoring`, not a new repository or
+another language for configuration. `OfflineActionInventory` is the qualified
+inventory boundary; nothing is re-exported from the base entry point.
 
 | Input owned by the integrator | Prepared offline result | Not supplied |
 | --- | --- | --- |

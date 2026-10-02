@@ -19,21 +19,34 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./authoring": {
+      "types": "./dist/authoring/index.d.ts",
+      "import": "./dist/authoring/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "biome check . && tsc --noEmit && vitest run && npm run test:hello-consumer && npm run test:action-authoring-prototype",
+    "check": "biome check . && tsc --noEmit && vitest run && npm run test:hello-consumer && npm run test:action-authoring-prototype && npm run test:authoring-consumer",
     "test": "vitest run",
     "prepack": "npm run build",
     "test:hello-consumer": "node scripts/test-hello-consumer.mjs",
     "build:action-authoring-prototype": "npm run build && tsc -p experiments/offline-action-authoring/tsconfig.build.json",
-    "test:action-authoring-prototype": "npm run build:action-authoring-prototype && node scripts/test-action-authoring-prototype.mjs"
+    "test:action-authoring-prototype": "npm run build:action-authoring-prototype && node scripts/test-action-authoring-prototype.mjs",
+    "test:authoring-consumer": "npm run build && node scripts/test-authoring-consumer.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0",
     "canonicalize": "4.0.0",
     "jsonc-parser": "3.3.1"
+  },
+  "peerDependencies": {
+    "@sinclair/typebox": "0.34.52"
+  },
+  "peerDependenciesMeta": {
+    "@sinclair/typebox": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.8",

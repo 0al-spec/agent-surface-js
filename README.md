@@ -78,6 +78,15 @@ All three retention modes are supported, including the exact closed
 validate auth, profiles, schemas, action semantics or a complete manifest.
 Hashing remains separate; neither operation establishes disclosure authority.
 
+## Optional offline action authoring
+
+`@0al/agent-surface/authoring` adds descriptor-only `OfflineActionInventory`:
+explicit proposal metadata plus a closed TypeBox 0.34.52 model become immutable
+action documents, schema resources and shape checks through `prepare()`.
+TypeBox is an optional peer; root imports remain independent of it. No handlers,
+Grants, sessions, tool registration or live Calcu migration are included.
+See [usage, grammar, lifecycle and publication limits](docs/offline-action-authoring.md).
+
 ## Offline schema resources
 
 `OfflineSchemaResources` prepares explicit host-supplied JSON Schemas with a

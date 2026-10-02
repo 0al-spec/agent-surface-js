@@ -239,10 +239,12 @@ where useful. Generated declarations still enter the same runtime executor;
 annotations cannot replace admission or prove a handler's advertised effects.
 Native and ASP paths must preserve the same application business invariants.
 
-The proposed [offline authoring module](plans/offline-action-authoring-module.md)
-uses the Calcu candidate to bound the first supported description layer. It
-does not capture handlers, infer authority or relax the one-action complete
-manifest contract. This is a design plan, not an implemented SDK entry point.
+The optional [offline authoring module](offline-action-authoring.md), designed
+from the Calcu candidate, supplies `@0al/agent-surface/authoring` as a bounded
+description layer. Its inventory prepares descriptors and schemas, not handlers
+or authority. It does not relax the one-action complete manifest contract.
+Calcu's private offline-candidate replacement and live migration remain later
+slices under the [design plan](plans/offline-action-authoring-module.md).
 
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence
