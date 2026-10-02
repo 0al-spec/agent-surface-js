@@ -264,10 +264,14 @@ than wrapping the native handler call. The
 [selected proposal wire contract](plans/proposal-exchange-wire-contract.md)
 separates invocation fields from retained host authority and complete receipt
 evidence. It chooses existing receipt references and application producer spans,
-not Calcu's inline objects/full binding echo. The next step is private offline
-value qualification, not a general executor or live activation. Receipt-channel
+not Calcu's inline objects/full binding echo. Qualification proceeds through
+private offline values. Receipt-channel
 binding and explicit manifest grammar changes remain prerequisites; the current
-source lock and public exports are unchanged.
+source lock and public exports are unchanged. The
+[private offline value experiment](../experiments/offline-proposal-exchange/README.md)
+now implements representation/correlation and returns only `evidence_required`.
+The [qualification report](reports/offline-proposal-exchange-qualification.md)
+keeps complete receipt integrity/authentication and host authority checks explicit.
 
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence

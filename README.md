@@ -171,6 +171,13 @@ host expectations, producer spans and reference-based receipts. It records Calcu
 compatibility changes and receipt-channel/declaration prerequisites; no new
 runtime API, public export or consumer migration is implemented by this design.
 
+The [private offline proposal exchange experiment](experiments/offline-proposal-exchange/README.md)
+implements strict request/result values, saved-request correlation and
+schema-before-hash validation. Its result remains `evidence_required` until
+separate host checks establish complete receipts, authority and application
+acceptance. The [qualification report](docs/reports/offline-proposal-exchange-qualification.md)
+records the executed vectors and remaining receipt stage.
+
 [API design principles](docs/api-design-principles.md) describe the intended
 developer experience, inspired by Foundation Models ergonomics: one operation
 definition and separate trusted host setup. The Calcu sketches are design-only,
