@@ -64,9 +64,12 @@ no `run`, `invoke`, dispatch handle or automatic method discovery. This is a
 deliberate change from the private prototype, which captures but never invokes
 its handler. The prototype has no discovered handler bypass; this removal
 narrows unnecessary coupling rather than repairs an observed vulnerability.
-Inferred input/output types remain available for application-owned
-bindings. Typed binding to an admitting executor belongs to a later composition
-slice; schema validation alone cannot qualify that execution path.
+Inferred input/output types remain available for application-owned bindings.
+Existing application types may instead remain independent, with compile-time
+correspondence checked at the integration boundary; do not require native code
+to depend on authoring merely to declare a type once. Typed binding to an
+admitting executor belongs to a later composition slice; schema validation
+alone cannot qualify that execution path.
 
 No domain math, Codex model/CLI settings, prompts, UI or retention probes enter
 this module. Root SDK consumers must not need TypeBox merely to import the base
@@ -82,22 +85,18 @@ consumer tests before claiming dependency isolation.
   custom builder DSL, YAML loader, decorators or generator framework. Preserve
   ordinary JSON Schema as the wire representation. Supporting a different
   authoring library/version requires its own compatibility evidence.
-- First grammar: closed required-field objects, number fields,
-  string fields and plain string literals/string-literal unions. Every nested
-  object is closed. Reject unsupported keywords and symbol metadata; no
-  `Type.Unsafe` escape hatch. Compile-time casts do not establish compatibility.
-  Optional fields, arrays, references, recursive schemas, general unions, custom formats and
-  transformations are outside this first grammar. Existing base wire validators
-  retain their separately documented broader bounded subset.
-- Preparation captures caller data without mutation; schema validation,
-  lowering and hashing are explicit behavior, not constructor I/O. Reject
-  accessors, cycles and unsupported graphs with bounded work. Developer inputs
-  are trusted code/data: this is not a sandbox against Proxy traps or plugins.
+- Use the closed TypeBox grammar below, not arbitrary `TSchema`. Optional
+  fields, arrays, references, recursive schemas, general unions, custom formats
+  and transformations are outside this first grammar. Existing base wire
+  validators retain their separately documented broader bounded subset.
 - Reuse `OfflineSchemaResources`, `DataClassCatalog`, `DataExposure`,
   `JsonDocument` and the pinned ASP hash implementation. Resolve only the
   supplied resource set, never the network or filesystem. Preserve existing
   resource/complexity limits; fragments do not bypass aggregate limits.
-- Only inventory-level preparation is a public qualification boundary. It must
+- One public inventory object accepts typed declaration data and provides
+  explicit `prepare(schemaBaseUri)` behavior; separate public definition and
+  catalog lifecycle objects are unnecessary. Only inventory-level preparation
+  is a public qualification boundary. It must
   validate the complete selected resource set atomically before returning the
   prepared result. Keep the prototype's individual fragment generation internal:
   its current `prepare()` computes a descriptor but does not establish resource
@@ -113,6 +112,55 @@ within existing resource limits. This does **not** expand the current complete
 manifest contract: `OfflineProposalManifest` accepts exactly one action and one
 scope. A multi-action fragment check is not full multi-action conformance.
 Do not relax that validator merely to make an authoring example work.
+This finite inventory requires no registration hooks or plugin framework.
+
+### Closed TypeBox grammar
+
+Input and output roots are objects. Each schema node must have exactly one own
+symbol-keyed data property: `Symbol.for('TypeBox.Kind')`, with the corresponding
+value below. Inspect symbol keys and property descriptors before lowering or
+JSON serialization; serialization would silently discard unsupported symbols.
+
+| Kind | Allowed own string keys and shape |
+| --- | --- |
+| `Object` | `type: object`, `properties`, `additionalProperties: false`, `required` listing every property exactly once. Only an empty object may omit `required`; `[]` is also accepted there. |
+| `Number` | `type: number` |
+| `String` | `type: string` |
+| `Literal` | `type: string`, string-valued `const` |
+| `Union` | `anyOf` containing 2–32 distinct string `Literal` nodes; optional `type: string` |
+
+Nested property schemas obey the same grammar and every nested object is
+closed. `properties` maps and `required`/`anyOf` arrays are containers, not
+schema nodes; no symbol metadata is allowed on them or action metadata.
+Other schema keys, including caller-supplied `$id`/`$schema`, annotations,
+defaults and bounds, are outside this first authoring grammar. The generator
+adds its own resource identity and dialect fields after validation.
+
+Reject mismatched or unknown kinds, including `Unsafe`, and every other symbol,
+including TypeBox `Optional`, `Readonly`, `Transform` and custom symbols. The
+Kind tag describes shape, not trusted constructor provenance. A compile-time
+cast cannot establish compatibility; the captured runtime structure must pass
+all checks. This allowlist preserves ordinary TypeBox objects without promising
+support for the whole TypeBox API.
+
+### Snapshot lifecycle
+
+The inventory constructor captures a bounded snapshot of membership, schema
+nodes and metadata without mutating or freezing caller-owned objects. Retain
+the data-class catalog as immutable `JsonDocument` source. Schema validation,
+lowering and hashing occur in explicit preparation, not the constructor.
+Capture failure records an invalid snapshot; `prepare()` rejects it atomically,
+without returning partially qualified fragments. Reject accessors without
+calling them, cycles and unsupported graphs within the existing limits.
+Developer inputs remain trusted code/data: this is not a sandbox against Proxy
+traps or plugins.
+
+Caller mutation before or after the first preparation cannot alter or repair
+the captured snapshot. The first successful preparation pins the normalized
+schema base URI; repeating it returns the same immutable result, while a
+different base URI rejects. A changed declaration, catalog or namespace needs
+a new inventory instance. This is local snapshot stability, not a global
+registry proving that another inventory never reused a URI.
 
 ## Output and compatibility rules
 
@@ -130,12 +178,36 @@ ASP fields or a new protocol profile are not needed for a SDK authoring module.
 The existing `spec-lock.json` remains pinned; a future upstream compatibility
 update is a separate reviewed task.
 
+Output resource content needs an explicit host publication policy. As the
+[existing schema guidance](../offline-schemas.md#scope-and-trust-boundary)
+explains, a manifest hash commits to schema URLs and declared content hashes,
+not arbitrary content later supplied under those URLs. With the same namespace
+and input, changing only the output schema can leave the action document and
+`surface_hash` unchanged while changing output validation. An output-only
+probe against the prototype confirms this; it is content-integrity evidence,
+not complete manifest conformance.
+
+For integrations qualified by this plan, prohibit in-place replacement of
+published schema resources. Preserve the old immutable resource inventory and
+publish the changed output under a new URI; for the first generator this means
+a new versioned schema base URI. Rebuild and validate the complete manifest
+and snapshot. A URI change changes the manifest hashing view, so the pinned
+[Surface Hash contract](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/core.md#surface-hash)
+also requires a new `surface_version`. A version bump alone does not prevent
+overwriting old URI contents. This publication policy is host-owned resource
+pinning, not a new `output_schema_hash` field or portable authority proof.
+
 For a later Calcu live switch, rebuild the complete manifest and snapshot,
 review the new version/hash and require fresh authority/consent/session
-transitions where the selected contract requires them. Old bindings must fail
-at the independent executor. No dual-hash acceptance, implicit Grant expansion
-or automatic reissuance is introduced by authoring. The live switch is not
-authorized by accepting this design document.
+transitions where the selected contract requires them. An old Grant must never
+be evaluated against the new snapshot/resources. Under the pinned
+[versioning rules](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/core.md#versioning-and-compatibility),
+it may remain usable against its exact retained old snapshot until expiry or
+revocation. If Calcu retires that snapshot, explicitly revoke/fence its old
+authority and verify executor rejection; publication alone does not revoke it.
+No dual-hash alias for one snapshot, implicit Grant expansion or automatic
+reissuance is introduced by authoring. The live switch is not authorized by
+accepting this design document.
 
 ## Qualification plan
 
@@ -158,13 +230,16 @@ authorized by accepting this design document.
 | Area | Required evidence |
 | --- | --- |
 | Deterministic preparation | Golden schema/action/hash results at two namespaces, explicit array ordering, repeated preparation with unchanged inputs |
-| Metadata and closure | Unknown metadata/classes, duplicate IDs/URIs, dangling/conflicting refs and unavailable supplied resources reject; no external resolution |
+| Authoring grammar | Ordinary TypeBox Object/Number/String/Literal/Union nodes pass with their Kind tags; mismatched/unknown kinds, extra keywords, Optional/Readonly/Transform/custom symbols and caller `$ref` reject before serialization |
+| Metadata and generated resources | Unknown metadata/classes and duplicate action IDs reject; generated URI collisions, missing/conflicting resources and aggregate limit violations cannot produce a prepared inventory; no external resolution |
+| Host composition | Complete-manifest validation separately rejects unavailable/conflicting schema resources and dangling references; the authoring grammar itself does not accept caller references |
 | Shape and type | Calcu's four operators and another domain compile/validate; extra fields, `sqrt`, wrong types and unsupported schema constructs reject |
-| Snapshot and bounds | Caller mutation cannot rewrite captured declarations; accessors/cycles, excessive size/depth and aggregate inventory fail closed |
+| Snapshot and bounds | Mutation before/after preparation cannot rewrite or repair captured declarations; changed catalog/namespace requires a new inventory; same-base preparation returns the immutable cached result; different-base reuse, accessors/cycles and size/depth/inventory limits fail closed |
+| Output-only migration | A changed output at unchanged URI/version demonstrates equal action/hash but different validation; a new namespace plus surface version changes bindings, with old resource contents retained unchanged. Offline preparation alone cannot enforce historical publication policy. |
 | No executable authority | Handler-bearing declarations reject, prepared result has no execution handle, native application code is not called by preparation |
 | Packaging | Actual npm-pack consumers exercise authoring exports; root import/typecheck works without the optional schema peer |
 | Complete contract | Calcu host/event/receipt/identity fields remain explicit; one-action full manifest validates, unsupported multi-action composition fails |
-| Later migration fence | Before any live switch, old hash/Grant/session bindings reject and admission failures call no handler; this is a later gate, not an offline passing claim |
+| Later migration fence | Old authority rejects against the new snapshot/resources; retained old authority uses only its exact old inventory, and explicitly retired authority rejects. Admission failures call no handler; this is a later live gate, not an offline passing claim. |
 
 Successful delivery means a supported bounded description authoring module,
 not a supported issuer, executor, transport, multi-action profile or production
