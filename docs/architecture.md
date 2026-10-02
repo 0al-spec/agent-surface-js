@@ -243,8 +243,16 @@ The optional [offline authoring module](offline-action-authoring.md), designed
 from the Calcu candidate, supplies `@0al/agent-surface/authoring` as a bounded
 description layer. Its inventory prepares descriptors and schemas, not handlers
 or authority. It does not relax the one-action complete manifest contract.
-Calcu's private offline-candidate replacement and live migration remain later
-slices under the [design plan](plans/offline-action-authoring-module.md).
+Calcu completed its offline-candidate replacement and live migration through
+[PR #19](https://github.com/SoundBlaster/Calcu/pull/19), following the
+[design plan](plans/offline-action-authoring-module.md). The next proposed
+[admitting handler binding qualification](plans/admitting-handler-binding.md)
+uses that merged baseline to scope a typed connection from admission to native
+application behavior. It defines dispatch/state evidence before a public
+execution API; current authoring exports still capture no handlers. The
+[private qualification](reports/admitting-handler-binding-qualification.md)
+returned no-go for public extraction: baseline dispatch deadlines and mediator
+input custody need correction, and a real integration saving is not established.
 
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence
