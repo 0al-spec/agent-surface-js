@@ -3,6 +3,10 @@
 Status: private qualification completed, 2026-10-02 UTC; no-go for public
 extraction/live adoption. See the [report](../reports/admitting-handler-binding-qualification.md).
 No new exports or live behavior.
+Follow-up: Calcu #20/#21 and SDK #33 have merged. The
+[host-owned dispatch contract](host-owned-proposal-dispatch.md) pins the repaired
+consumer, scopes the next private real-host comparison and keeps P5-T9B/C gated.
+The initial baseline mapping below remains historical, not current Calcu state.
 The [architecture](../architecture.md) owns component responsibilities; the
 [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
 owns ADP status and cross-repository ordering. Follow the

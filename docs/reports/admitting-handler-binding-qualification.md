@@ -5,6 +5,12 @@ This completes the bounded experiment in the [plan](../plans/admitting-handler-b
 not implementation of a new SDK executor. No source-lock, export, wire contract,
 consumer archive, RFC maturity or ADP status changes.
 
+Follow-up, 2026-10-02 UTC: Calcu #20/#21 are merged; the baseline gaps below
+are historical and were corrected by #21. The
+[host-owned dispatch contract](../plans/host-owned-proposal-dispatch.md) pins
+the repair evidence and the next private comparison. The extraction no-go
+remains: consumer fixes alone establish neither a real host adapter nor savings.
+
 ## What ran
 
 - [Private model](../../tests/fixtures/proposal-dispatch-model.ts): real retained
