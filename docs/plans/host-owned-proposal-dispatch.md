@@ -8,9 +8,11 @@ wire profile. Complexity: high; reasoning effort: high.
 
 An app already has a function that calculates a result. Its ASP executor checks
 the incoming request and connects that function to one declared proposal action.
-If access expires or is revoked while those checks run, the function must not
-start. If the function has already started, a later cancellation cannot make
-that execution disappear or restore its consumed quota.
+If access is expired at the final sampled authorization time, or revoked before
+the final lifecycle decision, the function must not start. This is not a promise
+that physical function entry occurs before the wall-clock deadline: scheduling
+can delay entry after the sample. If the function has already started, a later
+cancellation cannot make that execution disappear or restore its consumed quota.
 
 The host must own **one joint final operation**: current-state checks, quota
 claim and synchronous function entry. A future SDK binding may supply validated
@@ -94,11 +96,17 @@ authority transition, not relabelling an old binding.
 1. Finish potentially re-entrant trusted parsing, verifier and domain-decoder
    work first. Preserve raw-input, Grant, tuple, schema, hash and Runtime Receipt
    prerequisites rather than replacing them with a symbolic tuple.
-2. Sample trusted time, then reread current host retirement, record/session
-   activity and generation. Reject unavailable/non-finite time and expired
-   Grant or retained verified-identity deadline. Equality with a deadline is
-   expired. The supported clock's rollback policy must be qualified before
-   calling this a reusable deadline guarantee.
+2. Sample trusted time as `t_dispatch`, the authorization linearization point
+   **for deadline eligibility**, then reread current host retirement,
+   record/session activity and generation after the clock callback returns.
+   Reject unavailable/non-finite time, or Grant/retained verified-identity
+   deadlines at or before `t_dispatch`. A sample strictly before both deadlines
+   may pass even if wall time crosses a deadline during the remaining synchronous
+   reads, quota claim or scheduling delay before physical function entry.
+   Do not describe this as a no-start-after-expiry guarantee. The sample is not
+   a transferable admission token: lifecycle, cancellation and quota checks
+   below must still pass. The supported clock's rollback policy must be qualified
+   before claiming reusable sampled-time semantics.
 3. Include any claimed current identity-status guarantee in the same ordering
    domain. For an external source, specify revision/invalidation participation
    or the selected freshness semantics; do not claim instantaneous external
@@ -119,6 +127,10 @@ threads, external writers or a database need separately qualified coordination;
 an ASP-only mutex cannot fence writers that do not participate. Trusted app code
 is not sandboxed by SDK configuration. A handler returning a Promise has already
 been called: rejecting it afterward does not prove it performed no effects.
+No callback or suspension is permitted between the final sample and entry;
+this preserves local writer ordering, not atomicity with physical wall time.
+A stricter deployment deadline needs its own qualified execution semantics,
+not a second clock callback moved after the state reads or an unbounded loop.
 
 ## Private experiment and measurable acceptance
 
@@ -142,7 +154,8 @@ Use the repaired Calcu baseline, not an additional toy authority system:
 | --- | --- |
 | Prepare, wrong binding, copied/foreign/stale context | No issuance or function entry; no bypass reference escapes |
 | Valid proposal through HTTPS | One entry and correlated result; all existing receipt/exposure checks retained |
-| Grant/identity deadline reached during callback, non-finite/failed time | Zero entry and no quota consumption |
+| Grant/identity deadline at or before `t_dispatch`, non-finite/failed time | Zero entry and no quota consumption |
+| Sample before deadline, wall time crosses it before physical entry | Sampled-time eligibility may pass; do not assert a physical-entry deadline guarantee |
 | Revoke/rotate/retire/cancel before final entry | Zero entry; all relevant writers share the stated ordering domain |
 | Identity revoked/unavailable during verification | Zero entry; distinguish observed status from unqualified later external changes |
 | Last quota slot, recreated composition, recursive dispatch | At most permitted entries; quota cannot reset or be claimed twice |
