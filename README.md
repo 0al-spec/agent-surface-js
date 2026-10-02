@@ -165,6 +165,12 @@ Its [SDK responsibility scope](docs/architecture.md#sdk-responsibility-scope)
 distinguishes base mechanics, optional profile modules, host/application
 ownership and behavior outside the base package.
 
+The [selected proposal request/result contract](docs/plans/proposal-exchange-wire-contract.md)
+defines the next private value qualification: minimal message fields, retained
+host expectations, producer spans and reference-based receipts. It records Calcu
+compatibility changes and receipt-channel/declaration prerequisites; no new
+runtime API, public export or consumer migration is implemented by this design.
+
 [API design principles](docs/api-design-principles.md) describe the intended
 developer experience, inspired by Foundation Models ergonomics: one operation
 definition and separate trusted host setup. The Calcu sketches are design-only,

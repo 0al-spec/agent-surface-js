@@ -259,6 +259,16 @@ those bounded consumer gaps. The next
 keeps extraction gated on a real-host comparison, explicit writer ordering and
 measured integration benefit; no public execution module is selected yet.
 
+The subsequent Calcu request/result experiments found a more useful reuse seam
+than wrapping the native handler call. The
+[selected proposal wire contract](plans/proposal-exchange-wire-contract.md)
+separates invocation fields from retained host authority and complete receipt
+evidence. It chooses existing receipt references and application producer spans,
+not Calcu's inline objects/full binding echo. The next step is private offline
+value qualification, not a general executor or live activation. Receipt-channel
+binding and explicit manifest grammar changes remain prerequisites; the current
+source lock and public exports are unchanged.
+
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence
 preserved an uncertain outcome after an actual process kill, but neither that
