@@ -249,7 +249,10 @@ Calcu completed its offline-candidate replacement and live migration through
 [admitting handler binding qualification](plans/admitting-handler-binding.md)
 uses that merged baseline to scope a typed connection from admission to native
 application behavior. It defines dispatch/state evidence before a public
-execution API; current authoring exports still capture no handlers.
+execution API; current authoring exports still capture no handlers. The
+[private qualification](reports/admitting-handler-binding-qualification.md)
+returned no-go for public extraction: baseline dispatch deadlines and mediator
+input custody need correction, and a real integration saving is not established.
 
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence

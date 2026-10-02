@@ -1,6 +1,8 @@
 # Admitting executor to application handler binding
 
-Status: proposed design slice, 2026-10-02 UTC. No new exports or live behavior.
+Status: private qualification completed, 2026-10-02 UTC; no-go for public
+extraction/live adoption. See the [report](../reports/admitting-handler-binding-qualification.md).
+No new exports or live behavior.
 The [architecture](../architecture.md) owns component responsibilities; the
 [ASP adoption backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md)
 owns ADP status and cross-repository ordering. Follow the
@@ -79,7 +81,10 @@ by description preparation or given to the agent adapter.
 
 The qualification must identify the dispatch linearization point: the moment
 current authority is checked and quota is claimed before callback entry.
-Recheck expiry, generation, revocation, retirement and cancellation there.
+Recheck Grant expiry, generation, revocation, retirement, cancellation and
+current identity status/freshness there; an unexpired Grant does not extend
+identity freshness. Qualify the identity-only deadline case separately from
+Grant expiry, including synchronous verifier/policy clock advancement.
 Synchronous verifier/policy callbacks can re-enter the host or advance the
 test clock; absence of `await` alone is not a correctness argument.
 
@@ -112,7 +117,7 @@ cannot prove that the callback obeys its declared effects.
 | Valid proposal | One callback call, matching input/output and unchanged authority/receipt bindings |
 | Wrong action/mode/hash/tuple or malformed raw input | Admission rejects with zero callback calls |
 | Expired/revoked Grant, stale generation or unavailable identity | Admission rejects with zero callback calls |
-| Re-entrant retirement/revocation or clock advancement | Final dispatch checks reject invalid current state with zero callback calls |
+| Re-entrant retirement/revocation or clock advancement | Final dispatch checks reject invalid current state, including identity-only freshness expiry with a still-valid Grant, with zero callback calls |
 | Concurrent last quota slot or recreated mediator | At most the governing permitted calls; no quota reset |
 | Input mutation during admission/preparation | Callback receives only the immutable admitted input |
 | Invalid output/forged result/cancelled delivery | No successful presentation; count any callback already entered |
