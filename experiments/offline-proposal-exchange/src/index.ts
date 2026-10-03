@@ -9,6 +9,12 @@ import {
 } from './receipt-pair.js';
 import { CORRELATION_FIELDS, ProposalWire, positiveLimit } from './wire.js';
 
+export {
+  INLINE_RECEIPT_EXTENSION,
+  INLINE_RECEIPT_PROFILE,
+  OfflineInlineProposalExchange,
+  type RetainedInlineProposalExchange,
+} from './inline.js';
 export type { ReceiptIntegrityChecked } from './receipt-pair.js';
 
 const HASH = 'https://github.com/0al-spec/agent-surface/hash/';

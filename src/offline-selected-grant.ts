@@ -52,6 +52,8 @@ export interface OfflineSelectedGrantExpectations {
 export interface PreparedOfflineSelectedGrant {
   /** Rechecks the retained complete Grant hash. */
   validate(): void;
+  /** Rechecks the Grant and its binding to this SDK-prepared manifest. No live authority check. */
+  validateFor(manifest: PreparedOfflineProposalManifest): void;
   /** Recomputes the Grant hash using only the defined self-field exclusion. */
   hash(): string;
   /** Returns a fresh immutable document of the issuer-derived projection. */
@@ -294,6 +296,27 @@ class RetainedOfflineSelectedGrant implements PreparedOfflineSelectedGrant {
 
   validate(): void {
     this.hash();
+  }
+
+  validateFor(manifest: PreparedOfflineProposalManifest): void {
+    this.validate();
+    const selected = retainedProposalManifest(
+      manifest,
+      MAX_GRANT_BYTES,
+      'manifest_binding_mismatch',
+    );
+    const resourceServer = record(
+      record(this.#grant.parse(MAX_GRANT_BYTES)).resource_server,
+    );
+    for (const field of [
+      'app_id',
+      'issuer',
+      'surface_version',
+      'surface_hash',
+    ]) {
+      if (resourceServer[field] !== selected[field])
+        throw new Error('grant_manifest_binding_mismatch');
+    }
   }
 
   hash(): string {

@@ -104,7 +104,12 @@ export function manifestApi(
   manifest: JsonRecord,
   error = 'grant_manifest_binding',
 ): JsonRecord {
-  return fields(manifest.agent_api, AGENT_API_FIELDS, [], error);
+  return fields(
+    manifest.agent_api,
+    AGENT_API_FIELDS,
+    ['receipt_delivery'],
+    error,
+  );
 }
 
 export function manifestAction(

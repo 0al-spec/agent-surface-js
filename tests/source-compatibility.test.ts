@@ -13,7 +13,7 @@ describe('reviewed merged ASP source revision, not runtime support', () => {
     );
     expect(lock.parse()).toEqual({
       repository: 'https://github.com/0al-spec/agent-surface',
-      commit: 'da550fde6f8be4ff0c1ded15524afb66c2912287',
+      commit: '814084f4d7d06ac85be358ba84533d0718607746',
       profile: 'asp-jcs-sha-256',
       sources: [
         {
@@ -29,12 +29,12 @@ describe('reviewed merged ASP source revision, not runtime support', () => {
         {
           path: 'drafts/modules/privacy.md',
           sha256:
-            '0b7b2021377405de19fd630c93dde64d47564d8b22435b93c42445b62528f011',
+            '1d64270947f20ca62426f5ffe947024450b7a476ecdecc7653a4813315f98284',
         },
         {
           path: 'drafts/modules/evidence.md',
           sha256:
-            'f1beadacad07818cc97e6101d167fa67697bc5b96a7a660e43a9e87a828ca2a3',
+            '255de1bb9b0587e7ded8a39bf2e2b5d0385c3c695b2a4a2d0d4581db592cd881',
         },
         {
           path: 'drafts/modules/safe-effects.md',

@@ -1,5 +1,11 @@
-import type { JsonDocument, PreparedSchema } from '@0al/agent-surface';
+import type {
+  JsonDocument,
+  PreparedOfflineProposalManifest,
+  PreparedOfflineSelectedGrant,
+  PreparedSchema,
+} from '@0al/agent-surface';
 import {
+  OfflineInlineProposalExchange,
   OfflineProposalExchange,
   type PendingProposalEvidence,
   type ReceiptIntegrityChecked,
@@ -47,3 +53,26 @@ exchange.execute();
 import { OfflineProposalExchange as PublicExchange } from '@0al/agent-surface';
 
 void PublicExchange;
+
+declare const manifest: PreparedOfflineProposalManifest;
+declare const grant: PreparedOfflineSelectedGrant;
+grant.validateFor(manifest);
+const inline = new OfflineInlineProposalExchange(
+  manifest,
+  grant,
+  sourceRequest,
+  expectedContext,
+  8192,
+).prepare();
+const inlineChecked: ReceiptIntegrityChecked =
+  inline.checkReceiptIntegrity(sourceResult);
+const inlineAuthority: 'not_verified' =
+  inlineChecked.assurance.current_authority;
+void inlineAuthority;
+// @ts-expect-error Integrity is not application acceptance.
+inlineChecked.acceptedOutput();
+
+// @ts-expect-error Private experiment, not a base SDK export.
+import { OfflineInlineProposalExchange as PublicInline } from '@0al/agent-surface';
+
+void PublicInline;
