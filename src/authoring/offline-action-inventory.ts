@@ -67,15 +67,23 @@ export class OfflineActionInventory {
         'unsupported_action_metadata',
       );
       rejectSymbols(action.record());
-      action.fields([
-        'id',
-        'scope',
-        'risk',
-        'side_effect',
-        'approval',
-        'execution',
-        'data_exposure',
-      ]);
+      action.fields(
+        [
+          'id',
+          'scope',
+          'risk',
+          'side_effect',
+          'approval',
+          'execution',
+          'data_exposure',
+        ],
+        ['input_hash_profile'],
+      );
+      if (
+        Object.hasOwn(action.record(), 'input_hash_profile') &&
+        action.member('input_hash_profile') !== 'asp-jcs-sha-256'
+      )
+        action.reject();
       const id = text(action.text('id'), 'invalid_action_id');
       text(action.text('scope'), 'invalid_action_scope');
       if (

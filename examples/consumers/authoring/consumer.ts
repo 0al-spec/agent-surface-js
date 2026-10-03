@@ -23,6 +23,7 @@ const metadata = {
   risk: 'propose',
   side_effect: false,
   approval: 'none',
+  input_hash_profile: 'asp-jcs-sha-256',
   execution: {
     mode: 'propose',
     operation_id: 'calculation.prepare',

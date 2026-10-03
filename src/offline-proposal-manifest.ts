@@ -458,7 +458,9 @@ export class OfflineProposalManifest {
   } {
     const actions = array(manifest.actions, 'action_count_limit');
     if (actions.length !== 1) throw new Error('action_count_limit');
-    const action = fields(actions[0], REQUIRED_ACTION, []);
+    const action = fields(actions[0], REQUIRED_ACTION, ['input_hash_profile']);
+    if (Object.hasOwn(action, 'input_hash_profile'))
+      exactText(action.input_hash_profile, 'asp-jcs-sha-256');
     const id = identifier(action.id);
     const scope = identifier(action.scope);
     exactText(action.risk, 'propose');

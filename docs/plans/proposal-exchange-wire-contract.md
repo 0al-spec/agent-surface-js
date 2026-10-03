@@ -243,17 +243,20 @@ These are explicit compatibility changes, not a transparent drop-in wrapper.
 Do not heuristically detect formats or silently remove unknown fields. Calcu's
 current path remains private/unchanged until a new candidate is qualified.
 
-Two declaration gaps are already visible at SDK baseline `e67c834`:
+Two declaration gaps were identified at SDK baseline `e67c834`; their current
+state is:
 
 - [The selected manifest validator](../../src/offline-proposal-manifest.ts)
   closes `agent_api` without `receipt_url`. Adding that already-defined RFC field
   needs explicit grammar, URL/route, retained-snapshot and negative tests.
-- That validator also closes action declarations without `input_hash_profile`.
+- The validator and optional authoring now accept an explicit
+  `input_hash_profile: asp-jcs-sha-256`; absent fields remain absent for existing
+  offline declarations. A live receipt-bearing composition must require it.
   The RFC [Actions contract](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/core.md#actions)
   requires `asp-jcs-sha-256` when receipt chains bind exact inputs. An
-  `input_schema_hash` or audit field inventory does not substitute for it. Both
-  existing offline acceptance and Calcu receipt tests fall short of this live
-  declaration qualification; do not upgrade their conformance claims.
+  `input_schema_hash` or audit field inventory does not substitute for it.
+  Accepting the optional field does not qualify live input-hash production or
+  receipt delivery; the Calcu consumer must declare the profile explicitly.
 
 A changed declaration requires the selected new surface/hash and fresh authority
 transition; it is not permission to mutate an existing Grant. This decision

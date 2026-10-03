@@ -31,6 +31,41 @@ function defined<T>(value: T | undefined): T {
 }
 
 describe('offline authoring boundary', () => {
+  it('preserves an explicit input hash profile through authoring and full composition', () => {
+    const original = calculation();
+    const declaration = {
+      ...original,
+      action: {
+        ...original.action,
+        input_hash_profile: 'asp-jcs-sha-256' as const,
+      },
+    };
+    const prepared = inventory([declaration]).prepare(base);
+    expect(defined(prepared.actionDocuments[0]).parse()).toMatchObject({
+      input_hash_profile: 'asp-jcs-sha-256',
+    });
+    const withProfile = composed(prepared).prepare();
+    expect(withProfile.hash()).not.toBe(
+      composed(inventory().prepare(base)).prepare().hash(),
+    );
+    expect(declaration.action.input_hash_profile).toBe('asp-jcs-sha-256');
+  });
+
+  it.each([
+    null,
+    '',
+    'sha-256',
+    'asp-jcs-sha-512',
+    true,
+    {},
+  ])('rejects unsupported input hash profile %j before publication', (profile) => {
+    const declaration = calculation();
+    Reflect.set(declaration.action, 'input_hash_profile', profile);
+    expect(() => inventory([declaration]).prepare(base)).toThrow(
+      'unsupported_action_metadata',
+    );
+  });
+
   it('prepares both domains, with shape checks but no invocation or authority', () => {
     const prepared = inventory([calculation(), greeting()]).prepare(base);
     expect(prepared.actionDocuments).toHaveLength(2);

@@ -59,7 +59,12 @@ function resource(uri: string, schema: RecordValue): OfflineSchemaResource {
   };
 }
 
-function fixture(origin: string, actionId: string, scopeId: string) {
+function fixture(
+  origin: string,
+  actionId: string,
+  scopeId: string,
+  inputProfile = false,
+) {
   const inputUri = `${origin}/schemas/${actionId}.input.json`;
   const outputUri = `${origin}/schemas/${actionId}.output.json`;
   const eventUri = `${origin}/schemas/grant-revoked.event.json`;
@@ -202,6 +207,10 @@ function fixture(origin: string, actionId: string, scopeId: string) {
       event: 'grant.revoked',
     },
   };
+  if (inputProfile)
+    Object.assign(manifest.actions[0] as RecordValue, {
+      input_hash_profile: 'asp-jcs-sha-256',
+    });
   const surfaceHash = new SurfaceSnapshot(json(manifest)).hash();
   return {
     document: json({ ...manifest, surface_hash: surfaceHash }),
@@ -277,6 +286,18 @@ function candidate(
 }
 
 describe('bounded offline semantic Grant request', () => {
+  it('composes a Grant request with an explicitly selected action input profile', () => {
+    const value = fixture(
+      'https://input-profile.example.invalid',
+      'sample.propose',
+      'sample.scope',
+      true,
+    );
+    const checked = candidate(value).prepare();
+    checked.validate();
+    expect(checked.dataExposure().parse()).toHaveLength(2);
+  });
+
   it('accepts two unrelated manifests and derives action plus control-event exposure', () => {
     for (const [origin, actionId, scopeId] of [
       ['https://alpha-request.example.invalid', 'alpha.propose', 'alpha.scope'],
