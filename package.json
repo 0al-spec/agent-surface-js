@@ -27,13 +27,15 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "biome check . && tsc --noEmit && vitest run && npm run test:hello-consumer && npm run test:action-authoring-prototype && npm run test:authoring-consumer",
+    "check": "biome check . && tsc --noEmit && vitest run && npm run test:hello-consumer && npm run test:action-authoring-prototype && npm run test:authoring-consumer && npm run test:proposal-exchange",
     "test": "vitest run",
     "prepack": "npm run build",
     "test:hello-consumer": "node scripts/test-hello-consumer.mjs",
     "build:action-authoring-prototype": "npm run build && tsc -p experiments/offline-action-authoring/tsconfig.build.json",
     "test:action-authoring-prototype": "npm run build:action-authoring-prototype && node scripts/test-action-authoring-prototype.mjs",
-    "test:authoring-consumer": "npm run build && node scripts/test-authoring-consumer.mjs"
+    "test:authoring-consumer": "npm run build && node scripts/test-authoring-consumer.mjs",
+    "build:proposal-exchange": "npm run build && tsc -p experiments/offline-proposal-exchange/tsconfig.build.json",
+    "test:proposal-exchange": "npm run build:proposal-exchange && node scripts/test-proposal-exchange-consumer.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0",

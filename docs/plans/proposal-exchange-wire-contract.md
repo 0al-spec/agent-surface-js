@@ -263,7 +263,14 @@ inline extension would require its own upstream/compatibility decision.
 
 ## Next qualification and unsupported behavior
 
-Next deliverable: an **experimental offline request/result value** with exact
+The [first executable experiment](../../experiments/offline-proposal-exchange/README.md)
+now covers representation/correlation and returns only `evidence_required`.
+Its [qualification report](../reports/offline-proposal-exchange-qualification.md)
+records passing vectors and outstanding complete-receipt checks. The table
+below remains the acceptance target for the whole selected exchange, rather
+than a claim that every row is implemented.
+
+Qualification target: an **experimental offline request/result value** with exact
 positive/negative vectors below, packed consumption by Calcu and Greeting, and
 an honest distinction between correlated output and externally verified evidence.
 Do not copy the private fixture into public exports unchanged. Settle concrete
