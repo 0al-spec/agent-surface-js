@@ -114,7 +114,17 @@ export function manifestAction(
 ): JsonRecord & { id: string; scope: string } {
   const actions = boundedArray(manifest.actions, error);
   if (actions.length !== 1) throw new Error(error);
-  const action = fields(actions[0], ACTION_FIELDS, [], error);
+  const action = fields(
+    actions[0],
+    ACTION_FIELDS,
+    ['input_hash_profile'],
+    error,
+  );
+  if (
+    Object.hasOwn(action, 'input_hash_profile') &&
+    action.input_hash_profile !== 'asp-jcs-sha-256'
+  )
+    throw new Error(error);
   const id = identifier(action.id, error);
   if (id !== selectedAction) throw new Error(error);
   return { ...action, id, scope: identifier(action.scope, error) };
