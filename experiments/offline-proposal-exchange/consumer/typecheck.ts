@@ -2,6 +2,7 @@ import type { JsonDocument, PreparedSchema } from '@0al/agent-surface';
 import {
   OfflineProposalExchange,
   type PendingProposalEvidence,
+  type ReceiptIntegrityChecked,
 } from '@0al/offline-proposal-exchange-experiment';
 
 // Compile-only boundary example. Real schemas come from OfflineSchemaResources.
@@ -21,6 +22,22 @@ const state: 'evidence_required' = pending.status;
 const unverified: JsonDocument = pending.unverifiedOutput();
 void state;
 void unverified;
+declare const expectedContext: JsonDocument;
+declare const runtimeReceipt: JsonDocument;
+declare const appReceipt: JsonDocument;
+const checked: ReceiptIntegrityChecked = pending.checkReceiptIntegrity(
+  expectedContext,
+  runtimeReceipt,
+  appReceipt,
+  8192,
+);
+const integrity: 'integrity_checked' = checked.status;
+const authentication: 'not_verified' =
+  checked.assurance.producer_authentication;
+void integrity;
+void authentication;
+// @ts-expect-error Receipt integrity does not expose accepted execution.
+checked.acceptedOutput();
 // @ts-expect-error No verified success, execution or receipt-verification shortcut.
 pending.verified;
 // @ts-expect-error No application dispatcher.

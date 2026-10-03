@@ -52,6 +52,7 @@ try {
     'typecheck.ts',
     'check.mjs',
     'fixtures.mjs',
+    'receipt-fixtures.mjs',
     'browser-entry.mjs',
   ])
     cpSync(join(experiment, 'consumer', file), join(consumer, file));
@@ -59,9 +60,13 @@ try {
   const value = pack(experiment);
   run('npm', ['install', '--no-audit', '--no-fund', sdk, value], consumer);
   cpSync(join(experiment, 'tests/vectors.mjs'), join(consumer, 'vectors.mjs'));
+  cpSync(
+    join(experiment, 'tests/receipt-vectors.mjs'),
+    join(consumer, 'receipt-vectors.mjs'),
+  );
   const vectors = run(
     process.execPath,
-    ['--test', '--test-reporter=tap', 'vectors.mjs'],
+    ['--test', '--test-reporter=tap', 'vectors.mjs', 'receipt-vectors.mjs'],
     consumer,
   );
   process.stdout.write(

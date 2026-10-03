@@ -3,7 +3,13 @@ import {
   JsonDocument,
   type PreparedSchema,
 } from '@0al/agent-surface';
+import {
+  ProposalReceiptPair,
+  type ReceiptIntegrityChecked,
+} from './receipt-pair.js';
 import { CORRELATION_FIELDS, ProposalWire, positiveLimit } from './wire.js';
+
+export type { ReceiptIntegrityChecked } from './receipt-pair.js';
 
 const HASH = 'https://github.com/0al-spec/agent-surface/hash/';
 
@@ -13,6 +19,13 @@ export interface PendingProposalEvidence {
   unverifiedOutput(): JsonDocument;
   /** Original request/result values and computed output hash, not full host authority. */
   evidenceInputs(): JsonDocument;
+  /** Complete unsigned selected receipts plus independently retained host context. */
+  checkReceiptIntegrity(
+    expectedContext: JsonDocument,
+    runtimeReceipt: JsonDocument,
+    applicationReceipt: JsonDocument,
+    maximumReceiptBytes: number,
+  ): ReceiptIntegrityChecked;
 }
 
 export interface RetainedProposalExchange {
@@ -168,6 +181,22 @@ class EvidencePending implements PendingProposalEvidence {
 
   evidenceInputs(): JsonDocument {
     return new JsonDocument(this.#evidenceText);
+  }
+
+  checkReceiptIntegrity(
+    expectedContext: JsonDocument,
+    runtimeReceipt: JsonDocument,
+    applicationReceipt: JsonDocument,
+    maximumReceiptBytes: number,
+  ): ReceiptIntegrityChecked {
+    return new ProposalReceiptPair(
+      this.#outputText,
+      this.#evidenceText,
+      expectedContext,
+      runtimeReceipt,
+      applicationReceipt,
+      maximumReceiptBytes,
+    ).check();
   }
 }
 

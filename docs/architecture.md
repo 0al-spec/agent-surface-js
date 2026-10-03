@@ -273,6 +273,12 @@ now implements representation/correlation and returns only `evidence_required`.
 The [qualification report](reports/offline-proposal-exchange-qualification.md)
 keeps complete receipt integrity/authentication and host authority checks explicit.
 
+The [receipt-integrity follow-up](reports/offline-proposal-receipt-integrity.md)
+checks the selected complete unsigned pair against independently retained host
+context. It qualifies shared hash/link/tuple/policy mechanics while preserving
+producer authentication, current authority and application acceptance as host
+obligations. This remains private qualification before public extraction.
+
 The local [Memos Go adoption probe](proposals/memos-go-adoption-lessons.md)
 offers bounded cross-language design feedback: its single-node crash fence
 preserved an uncertain outcome after an actual process kill, but neither that

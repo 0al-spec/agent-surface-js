@@ -12,6 +12,11 @@ correlation and schema-before-hash ordering. It returns only `evidence_required`
 Full receipt acceptance is the next slice; the table below does not mark those
 prerequisites as implemented simply because no verified-success API exists.
 
+Follow-up: the [receipt-integrity qualification](offline-proposal-receipt-integrity.md)
+now implements the complete selected unsigned pair's integrity and binding
+checks. This report remains the historical first representation slice; producer
+authentication, current authority and final application acceptance remain host gates.
+
 Calcu and Greeting exercise the same installed package with different schemas
 and synthetic request/result values. Neither is a live application run or an
 independent interoperable implementation. The production Calcu adapter, base SDK

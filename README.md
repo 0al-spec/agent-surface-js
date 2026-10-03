@@ -178,6 +178,11 @@ separate host checks establish complete receipts, authority and application
 acceptance. The [qualification report](docs/reports/offline-proposal-exchange-qualification.md)
 records the executed vectors and remaining receipt stage.
 
+The follow-up [offline receipt-integrity qualification](docs/reports/offline-proposal-receipt-integrity.md)
+checks complete selected runtime/app evidence and independent host expectations.
+It reports `integrity_checked` while leaving producer authentication, current
+authority, trusted time and application acceptance explicitly unverified.
+
 [API design principles](docs/api-design-principles.md) describe the intended
 developer experience, inspired by Foundation Models ergonomics: one operation
 definition and separate trusted host setup. The Calcu sketches are design-only,
