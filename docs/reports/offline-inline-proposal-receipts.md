@@ -21,6 +21,11 @@ These checks do **not** establish a real issuer, authenticated peer or HTTP chan
 The host supplies independent receipt expectations, including subject/delegate and
 session generation; binding hashes alone do not derive or authorize those facts.
 Audience and remaining Grant constraints still require independent host checks.
+`PreparedOfflineSelectedGrant.validateFor(manifest)` checks the retained complete
+Grant against a genuinely SDK-prepared manifest (app/issuer/version/surface hash).
+The inline path requires this behavior before request retention; independently valid
+values from different surfaces cannot be mixed. This is representation binding,
+not current authorization.
 
 The result exposes only `integrity_checked`. Producer authentication, current
 authority, trusted time and application acceptance all remain `not_verified`.

@@ -665,6 +665,55 @@ function changedGrant(
 }
 
 describe('bounded offline selected Grant', () => {
+  it('validates against separately prepared equivalent bytes but rejects a different surface of the same application', () => {
+    const a = fixture(
+      'https://composition.example.invalid',
+      'calculation.propose',
+      'calculation.propose',
+    );
+    const b = fixture(
+      'https://composition.example.invalid',
+      'calculation.propose',
+      'calculation.propose',
+      true,
+    );
+    const grantA = candidate(a).prepare();
+    const grantB = candidate(b).prepare();
+    const manifestA = preparedManifest(a);
+    const manifestB = preparedManifest(b);
+    grantA.validate();
+    grantB.validate();
+    expect(manifestA.hash()).not.toBe(manifestB.hash());
+    expect(() => grantA.validateFor(preparedManifest(a))).not.toThrow();
+    expect(() => grantB.validateFor(manifestB)).not.toThrow();
+    expect(() => grantA.validateFor(manifestB)).toThrow(
+      /^grant_manifest_binding_mismatch$/,
+    );
+    expect(() => grantB.validateFor(manifestA)).toThrow(
+      /^grant_manifest_binding_mismatch$/,
+    );
+  });
+
+  it('requires a genuinely prepared manifest for Grant composition', () => {
+    const value = fixture(
+      'https://composition.example.invalid',
+      'calculation.propose',
+      'calculation.propose',
+    );
+    const manifest = preparedManifest(value);
+    const lookalike = {
+      document: manifest.document,
+      actionId: manifest.actionId,
+      surfaceHash: manifest.surfaceHash,
+      hash: () => manifest.hash(),
+      validateInput: () => {},
+      validateOutput: () => {},
+    };
+    expect(() => candidate(value).prepare().validateFor(lookalike)).toThrow(
+      /^invalid_manifest_binding$/,
+    );
+  });
+
   it('accepts a selected Grant for a manifest with an explicit action input profile', () => {
     const value = fixture(
       'https://input-profile.example.invalid',

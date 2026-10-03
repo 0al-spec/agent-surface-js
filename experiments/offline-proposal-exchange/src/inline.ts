@@ -51,7 +51,7 @@ export class OfflineInlineProposalExchange {
 
   prepare(): RetainedInlineProposalExchange {
     positiveLimit(this.#maximumBytes);
-    this.#grant.validate();
+    this.#grant.validateFor(this.#manifest);
     const manifestHash = this.#manifest.hash();
     const manifest = this.#manifest.document.parse() as Record<string, unknown>;
     const api = manifest.agent_api as Record<string, unknown>;

@@ -56,7 +56,8 @@ function fixture(kind = 'calcu') {
         vector.outputSchema.validate(document),
     },
     grant: {
-      validate: () => {
+      validateFor: (manifest) => {
+        assert.equal(manifest.hash(), surface);
         grantChecks += 1;
       },
       hash: () => vector.expected.grant_hash,
@@ -288,10 +289,13 @@ test('undeclared profile, wrong selected Grant hash and validation denial fail c
   };
   assert.throws(() => prepare(value));
   value.manifest = original;
-  value.grant = { validate: () => {}, hash: () => value.expected.surface_hash };
+  value.grant = {
+    validateFor: () => {},
+    hash: () => value.expected.surface_hash,
+  };
   assert.throws(() => prepare(value));
   value.grant = {
-    validate: () => {
+    validateFor: () => {
       throw new Error('grant_denied');
     },
     hash: () => value.expected.grant_hash,

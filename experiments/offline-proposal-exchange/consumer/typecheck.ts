@@ -56,6 +56,7 @@ void PublicExchange;
 
 declare const manifest: PreparedOfflineProposalManifest;
 declare const grant: PreparedOfflineSelectedGrant;
+grant.validateFor(manifest);
 const inline = new OfflineInlineProposalExchange(
   manifest,
   grant,
