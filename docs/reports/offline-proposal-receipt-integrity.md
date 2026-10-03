@@ -100,7 +100,9 @@ Local gates passed: `npm run check` (600 core tests and 675 experimental vectors
 `git diff --check`. The base SDK tarball contains 42 files and does not include
 this private experiment.
 
-The next slice is a reviewed host receipt-channel/authentication contract and a
-Calcu migration comparison preserving application acceptance. Public extraction
-still requires that host qualification; offline integrity alone does not enable
-execution or satisfy full ASP conformance.
+The [receipt-channel qualification](offline-proposal-receipt-channel-qualification.md)
+compares this value checker with Calcu's current loopback HTTPS response and
+records why its custom inline receipt members are not yet a declared ASP delivery
+choice. Public extraction still requires a host adapter with qualified delivery
+and authentication semantics; offline integrity alone does not enable execution
+or satisfy full ASP conformance.
