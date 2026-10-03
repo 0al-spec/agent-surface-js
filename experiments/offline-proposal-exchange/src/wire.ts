@@ -91,7 +91,7 @@ export function positiveLimit(value: number): void {
     throw new Error('proposal_byte_limit_invalid');
 }
 
-function closed(value: unknown, fields: readonly string[]): RecordValue {
+export function closed(value: unknown, fields: readonly string[]): RecordValue {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     throw new Error('proposal_shape_invalid');
   const record = value as RecordValue;
@@ -103,12 +103,12 @@ function closed(value: unknown, fields: readonly string[]): RecordValue {
   return record;
 }
 
-function identifier(value: unknown, maximum: number): void {
+export function identifier(value: unknown, maximum: number): void {
   if (typeof value !== 'string' || value.length === 0 || value.length > maximum)
     throw new Error('proposal_identifier_invalid');
 }
 
-function trace(value: unknown, digits: number): void {
+export function trace(value: unknown, digits: number): void {
   if (
     typeof value !== 'string' ||
     value.length !== digits ||
@@ -118,7 +118,7 @@ function trace(value: unknown, digits: number): void {
     throw new Error('proposal_trace_invalid');
 }
 
-function digest(value: unknown): void {
+export function digest(value: unknown): void {
   if (typeof value !== 'string' || !/^sha-256:[A-Za-z0-9_-]{43}$/u.test(value))
     throw new Error('proposal_digest_invalid');
   const encoded = value.slice('sha-256:'.length);

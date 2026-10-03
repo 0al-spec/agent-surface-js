@@ -21,6 +21,13 @@ The returned value offers:
   with the saved request, requires a distinct application span, validates output
   under the selected schema, then computes its ASP output hash.
 
+The correlated `PendingProposalEvidence` also offers
+`checkReceiptIntegrity(expectedContext, runtimeReceipt, applicationReceipt, byteCap)`.
+It checks complete selected unsigned evidence and returns `integrity_checked`
+with explicit unverified producer/authority/time/application assurance. The
+[receipt qualification](../../docs/reports/offline-proposal-receipt-integrity.md)
+defines the exact local host context, selected grammar and remaining host gates.
+
 Correlation returns `PendingProposalEvidence`, whose only state is
 `evidence_required`. `unverifiedOutput()` returns a fresh output document;
 `evidenceInputs()` returns the original request/result values and computed
@@ -58,9 +65,10 @@ Before verified success, the host must still establish:
 
 Well-formed receipt references are retained for these checks. A changed valid
 receipt ID/hash also returns `evidence_required`; this stage cannot determine
-whether the referenced receipt exists or belongs to the operation. There is no
-`verified` flag, boolean trust callback or method that promotes it to accepted
-execution. Response rejection after dispatch does not prove zero execution or
+whether the referenced receipt exists or belongs to the operation. Its separate
+integrity method requires both actual complete receipts and independent context.
+There is no `verified` flag, boolean trust callback or method that promotes it to
+accepted execution. Response rejection after dispatch does not prove zero execution or
 justify resending/refunding quota.
 
 The existing manifest grammar gaps for `receipt_url` and `input_hash_profile`,
