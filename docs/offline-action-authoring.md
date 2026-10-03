@@ -78,6 +78,14 @@ for Calcu's existing offline or live integration.
 
 ## Grammar and lifecycle
 
+Action metadata may explicitly declare `input_hash_profile: 'asp-jcs-sha-256'`.
+Preparation preserves that exact field; null, other profiles and unknown values
+reject. It is optional in this offline authoring grammar because not every
+proposal selects runtime receipt evidence. The host must require it when the
+selected receipt policy binds exact wire input, as required by the pinned
+[Actions contract](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/core.md#actions).
+Declaring the profile does not compute an invocation hash or verify receipts.
+
 The [closed grammar](plans/offline-action-authoring-module.md#closed-typebox-grammar)
 accepts only closed required-field objects, numbers, strings and plain string
 literals/unions. Both roots are objects. Empty objects may omit `required` or

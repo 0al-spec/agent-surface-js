@@ -263,6 +263,56 @@ function checker(
 }
 
 describe('bounded offline selected proposal manifest', () => {
+  it('retains the selected input hash profile without inserting it into legacy documents', () => {
+    const fixture = buildFixture(
+      'https://profile.example.invalid',
+      'profile.propose',
+      'profile.scope',
+    );
+    const explicit = changed(fixture, (manifest) => {
+      const action = (manifest.actions as Record<string, unknown>[])[0];
+      if (action === undefined) throw new Error('missing_test_action');
+      action.input_hash_profile = 'asp-jcs-sha-256';
+    });
+    const prepared = checker(
+      explicit,
+      fixture.resources,
+      fixture.identity,
+    ).prepare();
+    expect(prepared.document).toBe(explicit);
+    expect(prepared.hash()).not.toBe(
+      checker(fixture.document, fixture.resources, fixture.identity)
+        .prepare()
+        .hash(),
+    );
+    expect(
+      (parsed(fixture.document).actions as Record<string, unknown>[])[0],
+    ).not.toHaveProperty('input_hash_profile');
+  });
+
+  it.each([
+    null,
+    '',
+    'sha-256',
+    'asp-jcs-sha-512',
+    true,
+    {},
+  ])('rejects a rehashed manifest with unsupported input hash profile %j', (profile) => {
+    const fixture = buildFixture(
+      'https://profile.example.invalid',
+      'profile.propose',
+      'profile.scope',
+    );
+    const document = changed(fixture, (manifest) => {
+      const action = (manifest.actions as Record<string, unknown>[])[0];
+      if (action === undefined) throw new Error('missing_test_action');
+      action.input_hash_profile = profile;
+    });
+    expect(() =>
+      checker(document, fixture.resources, fixture.identity).prepare(),
+    ).toThrow('surface_incompatible');
+  });
+
   it.each([
     ['agent_api', 'action_url', '/agent-%65vents'],
     ['agent_api', 'session_control_url', '/agent-%61ctions'],

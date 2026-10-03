@@ -28,6 +28,8 @@ export interface ActionWireMetadata {
   readonly risk: 'propose';
   readonly side_effect: false;
   readonly approval: 'none';
+  /** Required by the host when runtime receipt evidence binds exact input. */
+  readonly input_hash_profile?: 'asp-jcs-sha-256';
   readonly execution: {
     readonly mode: 'propose';
     readonly operation_id: string;

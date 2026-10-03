@@ -44,6 +44,11 @@ supplied manifest hash.
 - Both action schemas and an `input_schema_hash` are required here. Requiring
   this hash is an SDK restriction: ASP does not require it for every
   non-persisted proposal. There is no invented `output_schema_hash`.
+- Optional explicit `input_hash_profile` with exactly `asp-jcs-sha-256`.
+  An absent field stays absent; null or another profile rejects. Runtime receipt
+  evidence requires this declaration under the pinned Actions contract. This
+  offline validator does not select a Grant's audit policy or imply that missing
+  metadata is acceptable for a live receipt-bearing composition.
 - One `grant.revoked` control event, complete exposure declarations and a
   bounded `at_least_once` delivery advertisement. Budget and application-event
   variants are outside this slice, not universally forbidden by ASP.
