@@ -122,6 +122,23 @@ export class ProposalReceiptPair {
     );
   }
 
+  /** Request-side structure/integrity only; never producer authentication. */
+  checkRuntime(): void {
+    positiveLimit(this.#maximumBytes);
+    const expected = closed(this.#parse(this.#expected), CONTEXT_FIELDS);
+    const evidence = new JsonDocument(this.#evidenceText).parse() as {
+      request: { payload: RecordValue };
+    };
+    const request = evidence.request.payload;
+    this.#context(expected);
+    for (const field of [...CORRELATION_FIELDS, 'span_id', 'input_hash'])
+      equal(expected[field], request[field]);
+    executionEqual(expected.execution, request.execution);
+    const runtime = this.#receipt(this.#runtime, 'runtime', expected);
+    equal(runtime.receipt_hash, request.parent_receipt_hash);
+    equal(runtime.span_id, request.span_id);
+  }
+
   #parse(document: JsonDocument): unknown {
     if (!(document instanceof JsonDocument))
       throw new Error('proposal_document_invalid');

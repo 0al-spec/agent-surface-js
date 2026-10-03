@@ -313,6 +313,118 @@ describe('bounded offline selected proposal manifest', () => {
     ).toThrow('surface_incompatible');
   });
 
+  it('accepts the selected HTTP inline receipt profile only with the exact action and input hash profile', () => {
+    const fixture = buildFixture(
+      'https://inline-receipt.example.invalid',
+      'inline-receipt.propose',
+      'inline-receipt.scope',
+    );
+    const document = changed(fixture, (manifest) => {
+      const api = manifest.agent_api as Record<string, unknown>;
+      api.receipt_delivery = {
+        profile: `${ASP}profiles/http-inline-receipts/v1`,
+        action_ids: ['inline-receipt.propose'],
+      };
+      const action = (manifest.actions as Record<string, unknown>[])[0];
+      if (action === undefined) throw new Error('missing_test_action');
+      action.input_hash_profile = 'asp-jcs-sha-256';
+    });
+
+    const prepared = checker(
+      document,
+      fixture.resources,
+      fixture.identity,
+    ).prepare();
+    expect(prepared.document).toBe(document);
+    expect(prepared.hash()).toBe(parsed(document).surface_hash);
+    expect(prepared.hash()).not.toBe(
+      checker(fixture.document, fixture.resources, fixture.identity)
+        .prepare()
+        .hash(),
+    );
+  });
+
+  it.each([
+    [
+      'wrong profile',
+      (delivery: Record<string, unknown>) => {
+        delivery.profile = `${ASP}profiles/http-inline-receipts/v2`;
+      },
+    ],
+    [
+      'extra profile field',
+      (delivery: Record<string, unknown>) => {
+        delivery.unreviewed = true;
+      },
+    ],
+    [
+      'null action IDs',
+      (delivery: Record<string, unknown>) => {
+        delivery.action_ids = null;
+      },
+    ],
+    [
+      'empty action IDs',
+      (delivery: Record<string, unknown>) => {
+        delivery.action_ids = [];
+      },
+    ],
+    [
+      'duplicate action IDs',
+      (delivery: Record<string, unknown>) => {
+        delivery.action_ids = [
+          'inline-receipt.propose',
+          'inline-receipt.propose',
+        ];
+      },
+    ],
+    [
+      'unknown action ID',
+      (delivery: Record<string, unknown>) => {
+        delivery.action_ids = ['other.propose'];
+      },
+    ],
+  ])('rejects inline receipt selection with %s', (_name, mutateDelivery) => {
+    const fixture = buildFixture(
+      'https://inline-receipt.example.invalid',
+      'inline-receipt.propose',
+      'inline-receipt.scope',
+    );
+    const document = changed(fixture, (manifest) => {
+      const api = manifest.agent_api as Record<string, unknown>;
+      const delivery: Record<string, unknown> = {
+        profile: `${ASP}profiles/http-inline-receipts/v1`,
+        action_ids: ['inline-receipt.propose'],
+      };
+      mutateDelivery(delivery);
+      api.receipt_delivery = delivery;
+      const action = (manifest.actions as Record<string, unknown>[])[0];
+      if (action === undefined) throw new Error('missing_test_action');
+      action.input_hash_profile = 'asp-jcs-sha-256';
+    });
+    expect(() =>
+      checker(document, fixture.resources, fixture.identity).prepare(),
+    ).toThrow(/^surface_incompatible$/);
+  });
+
+  it('rejects inline receipt selection without the action input hash profile', () => {
+    const fixture = buildFixture(
+      'https://inline-receipt.example.invalid',
+      'inline-receipt.propose',
+      'inline-receipt.scope',
+    );
+    const document = changed(fixture, (manifest) => {
+      const api = manifest.agent_api as Record<string, unknown>;
+      api.receipt_delivery = {
+        profile: `${ASP}profiles/http-inline-receipts/v1`,
+        action_ids: ['inline-receipt.propose'],
+      };
+    });
+    expect(() =>
+      checker(document, fixture.resources, fixture.identity).prepare(),
+    ).toThrow(/^surface_incompatible$/);
+  });
+
   it.each([
     ['agent_api', 'action_url', '/agent-%65vents'],
     ['agent_api', 'session_control_url', '/agent-%61ctions'],

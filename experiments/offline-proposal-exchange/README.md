@@ -3,7 +3,8 @@
 Private Node.js experiment, 2026-10-02 UTC. Implements the representation and
 correlation stage of the [selected wire contract](../../docs/plans/proposal-exchange-wire-contract.md).
 The complete result acceptance path still needs receipt, transport, authority
-and application checks. The base SDK exports and pinned ASP source lock are unchanged.
+and application checks. The inline follow-up pins the merged ASP HTTP receipt
+binding; the base SDK exchange exports remain unchanged.
 
 ## Behavior
 
@@ -60,7 +61,7 @@ Before verified success, the host must still establish:
 2. Authenticated action and receipt transport, exact complete parent/app receipts,
    bounded receipt JSON, producer authentication and integrity of each receipt
    and its policy decision.
-3. Receipt role, full authority tuple, parent/input/execution/output/result
+3. Receipt role, selected receipt/context bindings, parent/input/execution/output/result
    bindings and application-specific output/disclosure checks.
 
 Well-formed receipt references are retained for these checks. A changed valid
@@ -71,9 +72,27 @@ There is no `verified` flag, boolean trust callback or method that promotes it t
 accepted execution. Response rejection after dispatch does not prove zero execution or
 justify resending/refunding quota.
 
-The existing manifest grammar gaps for `receipt_url` and `input_hash_profile`,
-and the reviewed receipt-channel binding, remain prerequisites for live use.
-This experiment accepts no inline receipt extension or response-supplied URL.
+The original `OfflineProposalExchange` remains a reference-only representation
+path and accepts no inline receipt extension or response-supplied URL.
+
+## Selected inline proposal representation
+
+`OfflineInlineProposalExchange` is a separate private path for manifests selecting
+`http-inline-receipts/v1` for their sole proposal action. It takes trusted prepared
+manifest/Grant collaborators, the original complete request, independently retained
+host receipt context and a whole-body byte cap. `prepare()` validates the selection,
+surface/Grant/input bindings and complete carried Runtime Receipt before retention.
+`checkReceiptIntegrity(result)` requires the complete carried App Receipt, correlates
+the ordinary result and verifies the receipt pair. Missing carriers do not fall back
+to hashes or URLs. Approvals, signatures and durable effects are not supported here.
+
+The returned assurance remains `integrity_checked`, not verified execution. No
+network, TLS, producer authentication, current authority or trusted time is checked.
+Audience and remaining Grant constraints require independent host checks.
+The host owns the correct subject/delegate/session context; it must not build that
+context from the response. Synthetic packed fixtures establish representation and
+integrity behavior, not a fully qualified HTTP endpoint or real Grant issuer.
+See [the inline qualification report](../../docs/reports/offline-inline-proposal-receipts.md).
 
 ## Run and package boundaries
 

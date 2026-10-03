@@ -290,6 +290,22 @@ export class OfflineProposalManifest {
     if (manifest.resources.length !== 0)
       throw new Error('resource_inventory_unsupported');
     const action = this.#action(manifest);
+    const api = record(manifest.agent_api);
+    if (Object.hasOwn(api, 'receipt_delivery')) {
+      const delivery = fields(api.receipt_delivery, ['profile', 'action_ids']);
+      exactText(
+        delivery.profile,
+        `${ASP_ROOT}profiles/http-inline-receipts/v1`,
+      );
+      if (
+        !Array.isArray(delivery.action_ids) ||
+        delivery.action_ids.length !== 1 ||
+        delivery.action_ids[0] !== action.id ||
+        record(array(manifest.actions, 'action_count_limit')[0])
+          .input_hash_profile !== 'asp-jcs-sha-256'
+      )
+        incompatible();
+    }
     const eventSchema = this.#events(manifest.events);
     const receiptSchema = this.#audit(manifest.audit, issuer.origin);
     const management = this.#revocation(
@@ -384,7 +400,7 @@ export class OfflineProposalManifest {
     actionPath: string;
     routes: string[];
   } {
-    const api = fields(value, REQUIRED_AGENT_API);
+    const api = fields(value, REQUIRED_AGENT_API, ['receipt_delivery']);
     const audience = httpsUrl(api.credential_audience, true);
     const introspection = endpoint(api.grant_introspection_url, issuerOrigin);
     const revocation = endpoint(api.grant_revocation_url, issuerOrigin);

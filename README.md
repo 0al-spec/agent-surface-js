@@ -39,8 +39,10 @@ exclusions; use `SurfaceSnapshot` for the implemented manifest view.
 
 ## Compatibility and engineering
 
-[spec-lock.json](spec-lock.json) pins ASP `da550fde6f8be4ff0c1ded15524afb66c2912287`,
+[spec-lock.json](spec-lock.json) pins ASP `814084f4d7d06ac85be358ba84533d0718607746`,
 with SHA-256 digests of Core, Authorization, Privacy, Evidence and Safe Effects. The
+[inline receipt compatibility note](docs/compatibility/inline-receipts-source-update.md)
+records the current source update and its deliberately offline implementation subset. The
 [compatibility review](docs/compatibility/user-managed-source-update.md) records
 the historical update from the original Calcu comparison revision, covering the Hello
 fixture's explicit `user_managed` grammar without adding runtime support.

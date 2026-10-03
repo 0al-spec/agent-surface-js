@@ -64,9 +64,19 @@ try {
     join(experiment, 'tests/receipt-vectors.mjs'),
     join(consumer, 'receipt-vectors.mjs'),
   );
+  cpSync(
+    join(experiment, 'tests/inline-vectors.mjs'),
+    join(consumer, 'inline-vectors.mjs'),
+  );
   const vectors = run(
     process.execPath,
-    ['--test', '--test-reporter=tap', 'vectors.mjs', 'receipt-vectors.mjs'],
+    [
+      '--test',
+      '--test-reporter=tap',
+      'vectors.mjs',
+      'receipt-vectors.mjs',
+      'inline-vectors.mjs',
+    ],
     consumer,
   );
   process.stdout.write(
