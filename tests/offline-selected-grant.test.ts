@@ -66,6 +66,7 @@ function fixture(
   origin: string,
   actionId: string,
   scopeId: string,
+  inputProfile = false,
 ): {
   document: JsonDocument;
   resources: OfflineSchemaResource[];
@@ -228,6 +229,10 @@ function fixture(
       event: 'grant.revoked',
     },
   };
+  if (inputProfile)
+    Object.assign(manifest.actions[0] as RecordValue, {
+      input_hash_profile: 'asp-jcs-sha-256',
+    });
   const surfaceHash = new SurfaceSnapshot(json(manifest)).hash();
   const identity = json(identityAdvertisement);
   return {
@@ -660,6 +665,20 @@ function changedGrant(
 }
 
 describe('bounded offline selected Grant', () => {
+  it('accepts a selected Grant for a manifest with an explicit action input profile', () => {
+    const value = fixture(
+      'https://input-profile.example.invalid',
+      'input-profile.propose',
+      'input-profile.scope',
+      true,
+    );
+    const checked = candidate(value).prepare();
+    checked.validate();
+    expect(checked.dataExposure().parse()).toEqual(
+      grantValue(value).data_exposure,
+    );
+  });
+
   it('accepts two unrelated manifests and returns an issuer-derived projection', () => {
     for (const [origin, actionId, scopeId] of [
       ['https://alpha.example.invalid', 'alpha.propose', 'alpha.scope'],
