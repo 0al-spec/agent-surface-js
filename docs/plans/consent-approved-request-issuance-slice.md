@@ -178,6 +178,11 @@ Concrete host adoption and external ordering are independently qualified later.
 
 Before implementing a finalization port, specify its behavioral contract:
 
+The [detailed finalization draft](finalization-port-contract.md) and
+[selected executable outcome vectors](../reports/finalization-outcome-qualification.md)
+now explore the control flow and recovery shape. They do not accept the complete
+retained-input contract or qualify a host.
+
 - It accepts only a trusted host-owned approved-record reference and resolves
   authoritative material inside the host boundary, not caller-selected facts.
 - It revalidates all participating revisions/deadlines and both decisions,
