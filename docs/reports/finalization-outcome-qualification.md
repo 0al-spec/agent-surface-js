@@ -35,6 +35,8 @@ Test IDs are labels in
 | F09 | Independent record during quarantine | Fixture-declared independent record proceeds; affected replacement remains blocked. Real isolation is not proven. |
 | F10 | Assumed external ordering coverage | Same finalization flow accepts the matching retained revision with coverage through explicit commit time. |
 | F11 | Missing/unfenced/unavailable/drifted/expired external coverage | Reject before symbolic commit and delivery. |
+| F12 | Replace rejected ancestor, quarantine descendant, then try ancestor/direct bypass | Both replacement paths reject; independent lineage still commits. |
+| F13 | Descendant resolves no-commit or committed/revoked | Only the current head can create a successor. Ancestor/sibling forks remain rejected before and after resolution. |
 
 ## Non-claims and open gates
 
@@ -67,3 +69,12 @@ proposal-exchange tests. Build, package dry-run and whitespace checks passed.
 After narrowing the fixture's exception handling to prepublication checks,
 the 19 focused vectors passed again. These counts describe repository tests,
 not live-host or provider qualification.
+
+Follow-up on 2026-10-04 UTC: an independent review reproduced ancestor-based
+replacement bypass. The three new F12/F13 cases failed before the fix. The
+fixture now shares lineage state and admits replacement/finalization only at
+the current head; it never reopens an ancestor. Fresh decisions do not bypass
+quarantine, and independent fixture-declared lineages remain available. This
+tests the chosen symbolic replacement strategy, not real-host lineage isolation.
+Follow-up validation: 22 focused vectors and 16 Vitest files / 648 tests passed,
+along with consumer suites, build, package dry-run and whitespace checks.

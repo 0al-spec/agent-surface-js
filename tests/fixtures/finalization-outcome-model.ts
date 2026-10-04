@@ -30,7 +30,9 @@ export class FixtureRetainedBinding {
   }
 }
 
+type LineageState = { head: RecordState | undefined };
 type RecordState = {
+  lineage: LineageState;
   material: string;
   localPreview: string;
   issuerConsent: string;
@@ -61,8 +63,25 @@ export class NonLiveFinalizationHost {
     issuerConsent = material,
     externalRevision?: number,
   ): ApprovedReference {
+    return this.#approve(
+      material,
+      localPreview,
+      issuerConsent,
+      externalRevision,
+      { head: undefined },
+    );
+  }
+
+  #approve(
+    material: string,
+    localPreview: string,
+    issuerConsent: string,
+    externalRevision: number | undefined,
+    lineage: LineageState,
+  ): ApprovedReference {
     const reference = Object.freeze({});
     const record: RecordState = {
+      lineage,
       material,
       localPreview,
       issuerConsent,
@@ -74,6 +93,7 @@ export class NonLiveFinalizationHost {
     };
     this.#records.set(reference, record);
     this.#attempts.set(record.attempt, record);
+    lineage.head = record;
     return reference;
   }
 
@@ -83,16 +103,18 @@ export class NonLiveFinalizationHost {
   ): ApprovedReference {
     const previous = this.#record(reference);
     if (
+      previous.lineage.head !== previous ||
       previous.quarantined ||
       (previous.phase !== 'closed' && previous.phase !== 'revoked')
     )
       throw new Error('replacement_blocked');
     // Fresh symbolic decisions, never reuse the old approved record.
-    return this.approve(
+    return this.#approve(
       freshMaterial,
       freshMaterial,
       freshMaterial,
       previous.externalRevision,
+      previous.lineage,
     );
   }
 
@@ -103,7 +125,11 @@ export class NonLiveFinalizationHost {
     coverage?: ExternalCoverage,
   ): AttemptOutcome {
     const record = this.#record(reference);
-    if (record.phase !== 'approved' || record.quarantined)
+    if (
+      record.lineage.head !== record ||
+      record.phase !== 'approved' ||
+      record.quarantined
+    )
       throw new Error('attempt_not_open');
     if (this.#insideBoundary) throw new Error('fixture_boundary_reentrant');
     this.#insideBoundary = true;

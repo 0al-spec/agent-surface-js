@@ -49,6 +49,14 @@ to bypass quarantine. Stable means stable across recovery, not necessarily a
 public deterministic hash of a reference. Object identity is insufficient for a
 durable adapter, even though the non-live fixture uses it to model ownership.
 
+The selected fixture models a linear replacement chain with one current head.
+Creating a successor permanently supersedes its predecessor; replacing an
+ancestor cannot fork a sibling, whether the head is approved, quarantined or
+already resolved. Only a resolved current head can admit another replacement.
+Each replacement shares the host-owned lineage, while independent approvals
+create independent lineages. This is a bounded fixture strategy, not a new ASP
+wire field or proof that a real adapter correctly classifies independent work.
+
 ## Three outcomes
 
 | Outcome | What it proves | Allowed next transition |

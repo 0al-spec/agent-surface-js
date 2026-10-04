@@ -166,6 +166,56 @@ describe('non-live finalization outcome contract', () => {
     expect(coverage).toEqual({ kind: 'ordered', revision: 7, validUntil: 20 });
   });
 
+  it('F12: an ancestor cannot fork a replacement around descendant quarantine', () => {
+    const model = host();
+    const original = model.approve('a', 'wrong-preview');
+    expect(model.finalize(original, 10, 'acknowledged')).toBe('rejected');
+    const affected = model.replace(original, 'fresh');
+    expect(model.finalize(affected, 11, 'pending')).toBe('unknown');
+    expect(() => model.replace(original, 'bypass')).toThrow(
+      'replacement_blocked',
+    );
+    expect(() => model.replace(affected, 'bypass')).toThrow(
+      'replacement_blocked',
+    );
+    const independent = model.approve('independent');
+    expect(model.finalize(independent, 12, 'acknowledged')).toBe('committed');
+    expect(model.observe(affected).quarantined).toBe(true);
+  });
+
+  it.each([
+    false,
+    true,
+  ])('F13: resolved descendant (%s) allows only the lineage head to replace', (committed) => {
+    const model = host();
+    const original = model.approve('a', 'wrong-preview');
+    model.finalize(original, 10, 'acknowledged');
+    const affected = model.replace(original, 'fresh');
+    // Do not create a sibling even before the head attempts finalization.
+    expect(() => model.replace(original, 'sibling')).toThrow(
+      'replacement_blocked',
+    );
+    model.finalize(affected, 11, 'pending');
+    model.settle(affected, committed);
+    expect(model.reconcile(affected, 'authoritative')).toBe(
+      committed ? 'committed-frozen' : 'no-commit-closed',
+    );
+    if (committed) {
+      expect(() => model.replace(affected, 'fresh-again')).toThrow(
+        'replacement_blocked',
+      );
+      model.confirmRevocation(affected);
+    }
+    expect(() => model.replace(original, 'ancestor-bypass')).toThrow(
+      'replacement_blocked',
+    );
+    const replacement = model.replace(affected, 'fresh-again');
+    expect(model.finalize(replacement, 12, 'acknowledged')).toBe('committed');
+    expect(() => model.replace(affected, 'sibling')).toThrow(
+      'replacement_blocked',
+    );
+  });
+
   it.each<ExternalCoverage | undefined>([
     undefined,
     { kind: 'unfenced' },
