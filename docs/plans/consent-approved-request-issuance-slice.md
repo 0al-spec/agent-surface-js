@@ -43,10 +43,15 @@ new endpoints, full ASP role qualification, or conformance claims are authorized
 - The SDK [implementation matrix](../compatibility/host-binding-implementation-matrix.md)
   records identity/consent, atomic issuance, and credential custody/delivery as
   not implemented. Do not restate PR18 as issuer or authority support.
-- The SDK now also has the selected inline proposal receipt path and offline
-  receipt-pair integrity checks. These validate retained representations; they
-  do not authenticate the principal, either consent decision, or current host
-  authority.
+- The repository's private `@0al/offline-proposal-exchange-experiment` package
+  explores the selected inline proposal receipt path and offline receipt-pair
+  integrity checks. It depends on the base SDK as a peer, is excluded from the
+  base SDK tarball, and is not a public SDK API or an available Stage 2 dependency
+  for SDK consumers. Its [qualification report](../reports/offline-proposal-receipt-integrity.md)
+  records experiment evidence only: retained-representation checks do not
+  authenticate the principal, either consent decision, or current host authority.
+  The [inline receipt source update](../compatibility/inline-receipts-source-update.md)
+  records compatibility evidence for the current source lock.
 - The canonical ASP ADP backlog owns delivery status and sequencing. ADP-05/06
   remain blocked; this plan does not update them.
 

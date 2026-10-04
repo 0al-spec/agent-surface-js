@@ -6,8 +6,10 @@ Reviewed 2026-10-04 UTC. This is an evidence and owner-decision matrix for the
 
 ## Decision summary
 
-The SDK can validate selected offline manifest, schema, request, Grant,
-attenuation and receipt representations. That is reusable SDK behavior, but it
+The public SDK can validate selected offline manifest, schema, request, Grant
+and attenuation representations. Receipt-pair checks are separate private
+repository experiment evidence, excluded from the base SDK tarball and not a
+public API or consumer dependency. The public validation behavior
 does not authenticate any participant, record consent, establish current
 authority, or fence issuance against concurrent host writers.
 
@@ -46,7 +48,7 @@ selected Host-Provisioned Bearer binding, not every possible SDK profile.
 | Issuer consent — issuer-policy owner | Symbolic decisions do not authenticate either actor. | **Open** | Specify a distinct authenticated decision for the same exact material and negative vectors. Task prose, login, one boolean or an Action Approval Receipt substitutes for neither decision. |
 | Shared commit/invalidation fence — selected host storage and all-writer owners | Memos SQLite experiments cover subsets, not all routes/writers or external ordering. | **Partial** | Specify the finalization port's trusted reference, atomic revalidation/consume/complete Grant+verifier commit, linearization point and reject/committed/unknown outcomes. Define races/failure/restart vectors. No independent get/set or SDK-local mutex establishes host ordering. |
 | Credential generation, storage and private delivery — key-custody/mediator owners | Real issuance/private delivery is not implemented; symbolic counters do not prove custody. | **Open** | Specify CSPRNG, encoding, expiry, verifier-only credential storage, complete Grant/audience retention and private post-commit delivery. Define leakage, ambiguous delivery, restart and no-remint vectors; passing implementation tests is not required to accept this design. |
-| Current Action admission/revocation — application enforcement owner | Offline checks do not prove current enforcement. | **Open for activation** | Record the downstream obligation to reject revoked/stale credentials at all actual enforcement points. Qualify those points in integration and require them at activation. |
+| Current Action admission/revocation — application enforcement owner | Public offline checks and private receipt experiments do not prove current enforcement. | **Open for activation** | Record the downstream obligation to reject revoked/stale credentials at all actual enforcement points. Qualify those points in integration and require them at activation. |
 
 ## Stage 1 decision status
 
