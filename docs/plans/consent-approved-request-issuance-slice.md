@@ -167,8 +167,10 @@ separately from Calcu integration; set slice budget, stop conditions and named
 exit evidence before coding. If any mandatory dependency cannot make the
 required guarantee, stop and return to design—do not weaken the profile.
 The current symbolic qualification scope and unresolved real-host dependencies
-are recorded in the [non-live qualification report](../host-contract-qualification.md);
-that report does not mark this stage complete.
+are recorded in the [non-live qualification report](../host-contract-qualification.md).
+The [Stage 1 gate matrix](../reports/consent-issuance-stage-1-gates.md) now
+states current evidence, accountable owner roles, and pass evidence per host
+contract; it does not mark this stage complete.
 
 ### Stage 2 — bounded implementation and tests
 
