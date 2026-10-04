@@ -1,6 +1,6 @@
 # Consent-bound issuance — Stage 1 gate matrix
 
-Status: **incomplete; no host is qualified to begin issuer implementation**.
+Status: **design incomplete; no reviewed host is qualified for live activation**.
 Reviewed 2026-10-04 UTC. This is an evidence and owner-decision matrix for the
 [consent-bound issuance plan](../plans/consent-approved-request-issuance-slice.md).
 It does not authorize an issuer, migration, source-lock update, or ADP status
@@ -13,12 +13,14 @@ attenuation and receipt representations. That is reusable SDK behavior, but it
 does not authenticate any participant, record consent, establish current
 authority, or fence issuance against concurrent host writers.
 
-No reviewed host currently passes the complete Stage 1 design gate:
+The bounded SDK contract is not yet accepted. Host integration gaps below are
+separate from that design decision; they do not prohibit specifying or testing
+SDK behavior with explicit non-live fixtures:
 
 - **Calcu** is not a qualified principal source for this slice: the inspected
   demo uses process-local session state and a fixed demo subject, not an
   ordinary account/session lifecycle.
-- **Memos** is the selected design candidate for account/session behavior, but
+- **Memos** is a candidate for account/session adapter behavior, but
   the source-backed proposal still lacks owner approval and complete writer,
   route, consent, external-authority and credential-delivery contracts. Its
   SQLite experiments cover selected storage behavior, not a complete issuer.
@@ -28,39 +30,59 @@ No reviewed host currently passes the complete Stage 1 design gate:
 
 These are findings from the pinned inspections listed in the linked design
 records, not claims about every deployment or current uninspected source tree.
-The owner roles below are responsibilities; named owner approval has not been
-recorded. Do not fill that gap by assigning ownership to the SDK.
+The owner roles below identify responsibility for real deployment decisions.
+They are not end-user consent, a security proof, or a requirement to appoint a
+Memos maintainer before developing reusable SDK behavior. Do not assign host
+authentication or authority ownership to the SDK. These gates concern the
+selected Host-Provisioned Bearer binding, not every possible SDK profile.
 
 ## Gate matrix
 
-| Boundary and accountable owner role | Current evidence | State | Pass evidence required |
+| Boundary and accountable owner role | Current evidence | Host evidence state | Stage 1 design decision (not implemented-host evidence) |
 | --- | --- | --- | --- |
-| Ordinary User and exact session — selected host authentication/integration owner | Memos has account and refresh-session records, but access-token resolution does not itself bind the exact live refresh session. Sign-out and rotation have persistence/error semantics that need route adoption. Calcu's demo cookie is not an ordinary account session. | **Open** | A named host owner accepts the exact User/session source. The trusted issuance path resolves that exact session, and logout, rotation, expiry, account changes and storage failures have source-backed outcomes. A generic cookie, JWT/PAT alone, or caller-supplied ID fails. |
-| Registered Runtime — deployment/runtime owner | No reviewed record establishes a registration source, exact runtime binding, or revocation ordering for the selected host. | **Open** | The owner identifies the authoritative registration and lifecycle. Tests/evidence show missing, substituted, expired and revoked registrations reject before issuance, including invalidation racing with the commit point. |
-| Agent identity — trust/identity owner | SDK validates the selected identity-evidence representation. No selected host verifier, trust root, live status source, freshness rule, or external invalidation fence has been qualified. | **Open** | The owner selects supported evidence profiles and provenance, current-status/freshness semantics, and how status changes are ordered against issuance. Unavailable or unordered status fails closed; the guarantee is demonstrated for the selected topology. |
-| Manifest, schemas and policy — application/policy owner | SDK retains and checks selected content and hashes. Host-side authoritative selection, policy revision ownership, retention and invalidation of pending approvals are not qualified. | **Partial** | The owner identifies immutable byte sources and authoritative revisions. A change to any selected manifest/schema/policy invalidates pending approvals; request and Grant are rechecked against those exact retained bytes at finalization. |
-| Local preview confirmation — consent UX/application owner | The plan requires a canonical safe preview tied to retained material. No actor-authenticated preview record or withdrawal lifecycle has been selected. | **Open** | The owner specifies the authenticated actor, exact preview projection, binding to the request/manifest/schema/policy revisions, deadline, withdrawal and audit semantics. Changed material requires a new preview and confirmation. |
-| Issuer consent — issuer-policy owner | The symbolic model distinguishes this from local preview confirmation, but does not authenticate either actor or decision. No concrete issuer decision lifecycle is qualified. | **Open** | A separate authenticated decision is recorded for the exact same retained material; neither task prose, login, one `approved` boolean nor an Action Approval Receipt substitutes. Missing, copied, wrong-actor, stale or withdrawn decisions reject. |
-| Shared commit/invalidation fence — selected host storage and all-writer owners | Memos design selects one SQLite topology and documents selected writers. Overlay experiments cover subsets; existing auth-route adoption, all refresh writers, external identity/policy ordering, transaction failure and complete route-level races remain open. | **Partial; blocking** | Host-owned writers join one demonstrated ordering boundary. Each external authority either participates in that ordering or has a separately qualified valid-through-commit guarantee. At the linearization point, the approved record is consumed once and the complete Grant plus verifier state commits atomically. Before/after races, independent handles, failures and restart uncertainty are exercised. An SDK-local mutex or independent `get`/`set` calls fail. |
-| Credential generation, storage and private delivery — key-custody/mediator owners | No real credential issuance or private mediator channel is implemented. The symbolic model's delivery counters are not evidence of secret custody or recovery. | **Open** | A selected CSPRNG/encoding/expiry contract is implemented; persistent state contains only the verifier plus the complete Grant and exact audience; raw credential is delivered only to the registered mediator after commit. Leakage, failed/ambiguous delivery, restart and no-remint behavior are tested. |
-| Current Action admission/revocation — application enforcement owner | Offline Grant and receipt checks do not show that all execution paths consult current authority or reject credentials invalidated after issuance. | **Open for activation** | The actual selected enforcement points validate current Grant/session state and reject revoked or stale credentials. This remains a later integration gate even if the Stage 1 design is accepted. |
+| Ordinary User and exact session — selected host authentication/integration owner | Memos account/refresh-session records need exact-session route adoption and persistence/error qualification. Calcu's demo cookie is not an ordinary account session. | **Open** | Define trusted principal/session resolution, exact binding, deadlines and invalidation outcomes. Memos refresh-token mechanics are adapter-specific, not mandatory SDK internals. Generic process cookies or caller IDs cannot establish account authority. |
+| Registered Runtime — deployment/runtime owner | No selected host registration lifecycle is qualified. | **Open** | Specify authoritative registration, exact binding and revocation ordering; define missing/substituted/expired/revoked and commit-race vectors. |
+| Agent identity — trust/identity owner | SDK representation checks do not qualify a live verifier, trust root or status fence. | **Open** | Specify supported profiles, provenance, freshness and ordering obligations. First use host-owned authority in a non-live fixture topology; external sources require a concrete valid-through-commit mechanism before integration/activation. |
+| Manifest, schemas and policy — application/policy owner | SDK content/hash checks exist; authoritative host selection and invalidation are unqualified. | **Partial** | Specify immutable sources, revisions and exact retained-byte checks at finalization; material changes invalidate pending approvals. |
+| Local preview confirmation — consent UX/application owner | No real authenticated preview/withdrawal lifecycle is qualified. | **Open** | Specify actor, canonical preview, material/revision bindings, deadline, withdrawal and audit semantics; changed material requires fresh confirmation. |
+| Issuer consent — issuer-policy owner | Symbolic decisions do not authenticate either actor. | **Open** | Specify a distinct authenticated decision for the same exact material and negative vectors. Task prose, login, one boolean or an Action Approval Receipt substitutes for neither decision. |
+| Shared commit/invalidation fence — selected host storage and all-writer owners | Memos SQLite experiments cover subsets, not all routes/writers or external ordering. | **Partial** | Specify the finalization port's trusted reference, atomic revalidation/consume/complete Grant+verifier commit, linearization point and reject/committed/unknown outcomes. Define races/failure/restart vectors. No independent get/set or SDK-local mutex establishes host ordering. |
+| Credential generation, storage and private delivery — key-custody/mediator owners | Real issuance/private delivery is not implemented; symbolic counters do not prove custody. | **Open** | Specify CSPRNG, encoding, expiry, verifier-only credential storage, complete Grant/audience retention and private post-commit delivery. Define leakage, ambiguous delivery, restart and no-remint vectors; passing implementation tests is not required to accept this design. |
+| Current Action admission/revocation — application enforcement owner | Offline checks do not prove current enforcement. | **Open for activation** | Record the downstream obligation to reject revoked/stale credentials at all actual enforcement points. Qualify those points in integration and require them at activation. |
 
 ## Stage 1 exit rule
 
-Stage 1 is **not complete** while any required design row above is `Open`, or
-while the shared fence remains `Partial`. `Open for activation` is a separate
-downstream enforcement gate and is not mislabeled as a Stage 1 design result.
-Completion requires source-backed owner decisions for the selected topology,
-exact material/decision bindings, all host-writer ordering and post-commit
-uncertainty. Every external authority must either share the commit ordering or
-provide a separately qualified guarantee that its evidence remains valid
-through commit. If neither can be shown, that profile is a no-go; a cached
-`active` result or a future expiry alone is not a substitute.
+Stage 1 completes when the bounded behavioral contract, responsibility split,
+fixture topology, failure semantics and positive/negative vectors are reviewed
+and accepted. Specify every design obligation in the last column, including
+the finalization port described in the plan. Unresolved contract semantics block
+implementation of that behavior; missing concrete-host evidence does not.
+No public API is frozen by this document, and acceptance is not recorded yet.
 
-Stage 1 completion would permit designing the smallest SDK behavior against
-those selected contracts. It would not itself permit live activation,
-credential delivery, full ASP conformance, or a production claim. Until then,
-keep the SDK at offline validation and do not add public issuer/session APIs.
+`Open` and `Partial` above describe host evidence, not Stage 1 exit status.
+They remain visible without requiring Stage 2/3 results before Stage 1 can exit.
+Memos adoption, named deployment approval and a working credential channel are
+not prerequisites for a bounded SDK implementation with honest fixtures.
+
+## Downstream evidence and activation gates
+
+1. **Stage 2 — SDK implementation:** test the accepted contract, complete
+   Grant/verifier material, consume-once behavior and rejection/unknown outcomes.
+   Fixtures must be labeled non-live/non-durable; their success is not evidence
+   of real authentication, secret custody or external ordering.
+2. **Stage 3 — concrete adapter:** qualify actual principal/runtime/identity
+   sources, both decisions, all writers, durable atomic commit, secret generation,
+   private delivery, leakage, concurrency, failures and restart. SDK and adapter
+   evidence are reported separately. No particular application or database is a
+   generic SDK dependency; a selected adapter must fulfill the whole contract.
+3. **Stage 4 — activation:** require all applicable profile/ADP dependencies,
+   including current Action admission/revocation, and separate authorization.
+   Every external authority must share commit ordering or provide a qualified
+   valid-through-commit guarantee. Without either, that topology cannot activate;
+   cached `active`, future expiry or a local transaction cannot substitute.
+
+This correction changes sequencing, not RFC guarantees, ADP status, implemented
+capabilities, source-lock contents, or permission for live credential delivery.
 
 ## Evidence references
 

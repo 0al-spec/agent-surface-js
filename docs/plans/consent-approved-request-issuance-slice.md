@@ -2,8 +2,9 @@
 
 **Status: design proposal; not implemented.** Prepared 2026-09-30 UTC. This is
 sequencing/acceptance guidance, not an approved API, contract/status change, or
-permission to activate an issuer. Keep source lock `da550fde6f8be4ff0c1ded15524afb66c2912287`
-unless a separately reviewed compatibility need is demonstrated.
+permission to activate an issuer. Use the current `spec-lock.json` revision
+`814084f4d7d06ac85be358ba84533d0718607746`; changing it requires a separately
+reviewed compatibility decision. Historical inspection pins remain historical.
 
 ## Objective and scope
 
@@ -17,7 +18,7 @@ Calcu is only conditional. In inspected demo boundary
 `server/taskHost.ts` uses a per-process cookie; `server/demo.ts` a fixed demo
 subject and ephemeral identity; `server/README.md` distinguishes this from CLI
 auth. This is not an authenticated ordinary User. Next is **non-live host
-principal, consent, and fence contract qualification**, not a live issuer or
+principal, consent, and fence contract design**, not a live issuer or
 new Calcu login. Use Calcu only if ordinary account auth independently exists
 or is separately authorized as product work; otherwise postpone integration. No live activation, production
 identity claims, PII retention probes, extra Memos testing, browser issuance,
@@ -48,8 +49,8 @@ new endpoints, full ASP role qualification, or conformance claims are authorized
 - The canonical ASP ADP backlog owns delivery status and sequencing. ADP-05/06
   remain blocked; this plan does not update them.
 
-Normative source: pinned ASP [Host-Provisioned Bearer Binding](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-binding) and
-[Private Issuance and Exact Consent](https://github.com/0al-spec/agent-surface/blob/da550fde6f8be4ff0c1ded15524afb66c2912287/drafts/modules/authorization.md#host-provisioned-bearer-private-issuance-and-consent). The [ADP backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md) owns status and ordering.
+Normative source: pinned ASP [Host-Provisioned Bearer Binding](https://github.com/0al-spec/agent-surface/blob/814084f4d7d06ac85be358ba84533d0718607746/drafts/modules/authorization.md#host-provisioned-bearer-binding) and
+[Private Issuance and Exact Consent](https://github.com/0al-spec/agent-surface/blob/814084f4d7d06ac85be358ba84533d0718607746/drafts/modules/authorization.md#host-provisioned-bearer-private-issuance-and-consent). The [ADP backlog](https://github.com/0al-spec/agent-surface/blob/main/review/adoption-delivery-backlog.md) owns status and ordering.
 
 ## Normative invariants to preserve
 
@@ -95,11 +96,16 @@ Normative source: pinned ASP [Host-Provisioned Bearer Binding](https://github.co
    Grant, identity, consent, credential-custody, session, audit, exposure,
    receipt, or control obligations.
 
-## Host-owned contracts required before implementation
+## Host-owned obligations to specify before bounded SDK implementation
+
+Stage 1 specifies these obligations, failure outcomes and test vectors. It does
+not require a deployed host or passing integration tests. Concrete adapter
+evidence belongs to Stage 3; live activation belongs to Stage 4. Memos is a
+candidate adapter, not a prerequisite or normative source for the TS SDK.
 
 | Dependency / owner | Contract decision required | Stop if unresolved |
 | --- | --- | --- |
-| Application authentication / Calcu owner | How an ordinary signed-in account is authenticated at the private host boundary; account/session lifecycle and logout fencing. | Do not substitute a demo cookie, process identity, request field, or SDK-provided principal. |
+| Application authentication / selected host owner | How an ordinary signed-in account is authenticated at the private host boundary; account/session lifecycle and logout fencing. | Do not substitute a demo cookie, process identity, request field, or SDK-provided principal. |
 | Runtime registration / deployment owner | Trusted registration and exact runtime binding; revocation/change semantics. | No caller-selected runtime or inferred registration. |
 | Identity verifier / trust owner | Selected profile combination, evidence provenance, current status, freshness/deadline and invalidation ordering through commit. | If external invalidations cannot be fenced/ordered, no issuance. |
 | Policy and snapshot owners | Authoritative policy revisions; immutable manifest/schema provenance, retention and invalidation. | No reconstruction from mutable URLs/files or unpinned current content. |
@@ -126,7 +132,7 @@ they are not capabilities. Before Stage 2, keep ownership divided as follows:
 | Principal and Runtime | Compare closed values and bindings once trusted host facts are supplied; reject missing or mismatched facts. | Authenticate the ordinary User, resolve the registered Runtime and enforce their lifecycle/revocation. A user ID, cookie, TypeScript brand, or `active` flag is not proof. |
 | Identity and policy | Validate supported evidence representation and deterministic projection; consume explicit current decisions from trusted collaborators. | Own trust roots, profile/status policy, freshness and invalidation ordering; publish the authoritative policy and revision. |
 | Consent | Check two distinct decisions against the same retained, canonical preview and exact material, including actor, purpose, revision and deadline fields selected by the contract. | Authenticate each decision-maker, record and withdraw decisions, render the safe preview, and own the consent lifecycle. Two booleans or task text do not substitute for these decisions. |
-| Issuance ordering | Reuse validators and deterministic Grant/credential-verifier derivation only inside a host-supplied finalization boundary whose semantics have been qualified. | Atomically revalidate every participating authority revision, consume the approved record once, and commit the complete Grant plus verifier state. Existing writers must share that ordering boundary. |
+| Issuance ordering | Reuse validators and deterministic Grant/credential-verifier derivation against a specified host finalization contract; unit fixtures are not qualified adapters. | Atomically revalidate every participating authority revision, consume the approved record once, and commit the complete Grant plus verifier state. Existing writers must share that ordering boundary; qualify the actual adapter before activation. |
 | Credential and delivery | Enforce the selected encoding/expiry rules and return only the contractually allowed result to the trusted mediator path. | Generate secret material with a CSPRNG, keep raw credential custody private, store verifier-only credential state, and recover uncertain post-commit delivery without reminting under old consent. |
 
 The required shape is therefore:
@@ -143,34 +149,60 @@ The SDK must not manufacture atomicity by composing independent `get`,
 mutex that existing account, identity, policy or session writers do not join.
 Nor should it expose a reusable “admitted” flag or raw issuance capability to
 the browser, model or application handler. If the selected host cannot provide
-one qualified finalization boundary, stop at offline validation; do not weaken
-the selected guarantee to make an issuer API possible.
+one qualified finalization boundary, block that host's live issuance. Bounded
+SDK implementation against explicit non-live fixtures may proceed; do not
+weaken the selected guarantee or advertise those fixtures as host qualification.
 
 This boundary clarifies a design gate only. It does not complete Stage 1, approve
 an SDK API, update ADP status, or authorize Calcu/Memos integration. Stage 2 may
-start only after the host-owner decisions in the table above have concrete,
-source-backed answers and the external invalidation/commit ordering is
-demonstrated for the chosen topology.
+start after the bounded contract's inputs, outcomes, ownership obligations and
+test vectors are accepted. Existing source inspections inform that design;
+they need not demonstrate an issuer that has not yet been implemented.
+Concrete host adoption and external ordering are independently qualified later.
+
+Before implementing a finalization port, specify its behavioral contract:
+
+- It accepts only a trusted host-owned approved-record reference and resolves
+  authoritative material inside the host boundary, not caller-selected facts.
+- It revalidates all participating revisions/deadlines and both decisions,
+  consumes the record once, and commits the complete Grant and verifier state
+  at one linearization point. SDK validation must not become an unfenced precheck.
+- It distinguishes rejection with no commit, confirmed commit, and unknown
+  commit outcome. Unknown outcomes prohibit delivery/retry, require freezing
+  potentially committed authority, and block fresh issuance until revocation is
+  confirmed. They are never interpreted as permission to remint under old consent.
+- Private post-commit delivery and its uncertain outcome remain a separate
+  host/mediator lifecycle. Public results never expose the raw credential.
+- The first non-live model uses host-owned authority revisions in one ordering
+  boundary. This is a fixture topology, not a new identity profile or production
+  trust root. External adapters require a concrete valid-through-commit mechanism,
+  not an `active` flag, a TTL, or an interface promising safety by itself.
+
+These are design requirements, not exported method signatures or evidence that
+the current SDK implements issuance. Responsibility roles are not substitutes
+for authenticated end-user or issuer consent.
 
 ## Staged delivery
 
-### Stage 1 — design and contract qualification
+### Stage 1 — contract design and ownership
 
-Begin with non-live owner qualification of ordinary principal authentication,
+Begin with non-live design of ordinary principal authentication,
 the two consent bindings, and commit/revocation fences. Resolve the owner matrix
 above for the bounded same-host profile; do not assume Calcu can serve as the
 live consumer. Specify the immutable record's material binding and invalidation
-semantics, the issuance linearization point, external-source ordering evidence,
+semantics, the issuance linearization point, external-source ordering obligations,
 and post-commit delivery uncertainty state. Define dependency lifecycle,
 retention/data minimization and test fixtures. Estimate reusable SDK engineering
 separately from Calcu integration; set slice budget, stop conditions and named
-exit evidence before coding. If any mandatory dependency cannot make the
-required guarantee, stop and return to design—do not weaken the profile.
+exit evidence before coding. Accept the bounded finalization contract and
+positive/negative vectors, including explicit fixture limitations. A missing
+live adapter does not prevent this design or Stage 2. An incoherent contract
+does: return to design rather than weakening the profile.
 The current symbolic qualification scope and unresolved real-host dependencies
 are recorded in the [non-live qualification report](../host-contract-qualification.md).
 The [Stage 1 gate matrix](../reports/consent-issuance-stage-1-gates.md) now
-states current evidence, accountable owner roles, and pass evidence per host
-contract; it does not mark this stage complete.
+separates design decisions from later implementation and host evidence; it does
+not mark any stage complete.
 
 ### Stage 2 — bounded implementation and tests
 
@@ -190,10 +222,18 @@ mediator dependencies in the selected consumer. Exercise restart, races and unce
 the concrete durable/fenced adapter and the actual private channel. If restart
 cannot retain authority state until revocation is confirmed, it must invalidate
 all pre-restart credentials at every enforcement point; otherwise block startup
-and issuance. Report SDK and consumer effort separately. Do not activate the
-route unless every required selected-profile dependency and applicable ADP gate
-is satisfied. This slice does not itself qualify HTTPS Action admission,
+and issuance. Report SDK and consumer effort separately. Integration evidence
+does not authorize live activation. This slice does not itself qualify HTTPS Action admission,
 revocation, sessions, or the whole Host-Provisioned Bearer binding.
+
+### Stage 4 — live activation decision
+
+Only after every required selected-profile dependency and applicable ADP gate
+is satisfied may a separately authorized host activate issuance. Require actual
+current Action admission/revocation, authenticated decisions, private custody,
+all-writer ordering, external-authority guarantees and restart/delivery evidence.
+SDK unit tests or an accepted contract cannot substitute for these proofs.
+This development binding never implies production certification.
 
 ## Acceptance vectors
 
@@ -211,9 +251,11 @@ revocation, sessions, or the whole Host-Provisioned Bearer binding.
 
 ## Stop conditions and exit report
 
-Stop before implementation if ordinary account authentication, distinct consent
-recording, identity/policy invalidation ordering, transactional consume+commit,
-or private mediator custody/delivery lacks an owner-approved contract. Stop if
+Stop bounded SDK implementation if its selected contract leaves authentication,
+distinct consent, invalidation ordering, consume+commit or private delivery
+semantics undefined. Missing real-host evidence blocks integration/activation,
+not explicitly scoped non-live SDK work. Stop a concrete host's activation if
+it cannot demonstrate any required guarantee. Stop if
 the requested scope expands into a new normative contract, broad source-lock
 change, full binding implementation, live activation, PII retention study, or
 unbudgeted reliability work. Do not resolve a blocker by weakening a MUST,
