@@ -41,6 +41,10 @@ new endpoints, full ASP role qualification, or conformance claims are authorized
 - The SDK [implementation matrix](../compatibility/host-binding-implementation-matrix.md)
   records identity/consent, atomic issuance, and credential custody/delivery as
   not implemented. Do not restate PR18 as issuer or authority support.
+- The SDK now also has the selected inline proposal receipt path and offline
+  receipt-pair integrity checks. These validate retained representations; they
+  do not authenticate the principal, either consent decision, or current host
+  authority.
 - The canonical ASP ADP backlog owns delivery status and sequencing. ADP-05/06
   remain blocked; this plan does not update them.
 
@@ -109,6 +113,44 @@ runtime authentication, identity trust configuration, storage/key custody,
 consent decisions, host placement, and private channel remain host/deployment
 responsibilities. No public type name, method signature, package split, or
 TypeScript brand is frozen by this plan.
+
+## SDK/host boundary for the next implementation decision
+
+The implementation boundary is behavioral, not a proposed list of public
+classes. The existing SDK values are offline inputs to a later issuance path;
+they are not capabilities. Before Stage 2, keep ownership divided as follows:
+
+| Responsibility | Reusable SDK behavior | Host/deployment behavior |
+| --- | --- | --- |
+| Request and Grant material | Revalidate the selected manifest, schemas, semantic request, complete Grant, issuer-derived exposure, and request-to-Grant attenuation against retained bytes. | Select the authoritative immutable versions and provide the exact retained material; never rebuild it from an agent response or mutable URL. |
+| Principal and Runtime | Compare closed values and bindings once trusted host facts are supplied; reject missing or mismatched facts. | Authenticate the ordinary User, resolve the registered Runtime and enforce their lifecycle/revocation. A user ID, cookie, TypeScript brand, or `active` flag is not proof. |
+| Identity and policy | Validate supported evidence representation and deterministic projection; consume explicit current decisions from trusted collaborators. | Own trust roots, profile/status policy, freshness and invalidation ordering; publish the authoritative policy and revision. |
+| Consent | Check two distinct decisions against the same retained, canonical preview and exact material, including actor, purpose, revision and deadline fields selected by the contract. | Authenticate each decision-maker, record and withdraw decisions, render the safe preview, and own the consent lifecycle. Two booleans or task text do not substitute for these decisions. |
+| Issuance ordering | Reuse validators and deterministic Grant/credential-verifier derivation only inside a host-supplied finalization boundary whose semantics have been qualified. | Atomically revalidate every participating authority revision, consume the approved record once, and commit the complete Grant plus verifier state. Existing writers must share that ordering boundary. |
+| Credential and delivery | Enforce the selected encoding/expiry rules and return only the contractually allowed result to the trusted mediator path. | Generate secret material with a CSPRNG, keep raw credential custody private, store verifier-only credential state, and recover uncertain post-commit delivery without reminting under old consent. |
+
+The required shape is therefore:
+
+```text
+trusted host prepares exact material and records both decisions
+    → SDK checks the selected closed representations and bindings
+    → host's qualified finalization boundary revalidates and atomically commits
+    → host privately delivers the committed result to the registered mediator
+```
+
+The SDK must not manufacture atomicity by composing independent `get`,
+`isActive`, `approve`, `consume` and `save` callbacks, or by adding an SDK-local
+mutex that existing account, identity, policy or session writers do not join.
+Nor should it expose a reusable “admitted” flag or raw issuance capability to
+the browser, model or application handler. If the selected host cannot provide
+one qualified finalization boundary, stop at offline validation; do not weaken
+the selected guarantee to make an issuer API possible.
+
+This boundary clarifies a design gate only. It does not complete Stage 1, approve
+an SDK API, update ADP status, or authorize Calcu/Memos integration. Stage 2 may
+start only after the host-owner decisions in the table above have concrete,
+source-backed answers and the external invalidation/commit ordering is
+demonstrated for the chosen topology.
 
 ## Staged delivery
 
