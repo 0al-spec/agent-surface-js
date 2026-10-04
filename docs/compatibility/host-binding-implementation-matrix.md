@@ -15,13 +15,16 @@ resource filters, consent and authoritative issuance are not implemented.
 ## Reviewed source checkpoint
 
 - Previous SDK pin: `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`.
-- Current [spec-lock.json](../../spec-lock.json):
+- Historical binding checkpoint:
   `da550fde6f8be4ff0c1ded15524afb66c2912287`, merged
   [ASP PR #92](https://github.com/0al-spec/agent-surface/pull/92).
 - The [compatibility evidence](host-binding-source-update.md) records the
   full five-source review, exact digests and unchanged implemented behavior.
   The reviewed candidate `ea3b2160fd5edab4b7d7d18abd4f098b46088351`
   has identical module bytes to the merge commit.
+- The authoritative current revision is in [spec-lock.json](../../spec-lock.json).
+  The subsequent [inline receipts update](inline-receipts-source-update.md)
+  records later compatibility evidence; the checkpoint above is not a current pin.
 
 This completes the source checkpoint, not any planned implementation row below.
 
