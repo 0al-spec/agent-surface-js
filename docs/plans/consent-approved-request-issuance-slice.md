@@ -1,9 +1,10 @@
 # Consent-bound approved request and private issuance slice
 
-**Status: design proposal; not implemented.** Prepared 2026-09-30 UTC. This is
+**Status: design proposal; not implemented.** Prepared 2026-09-30 UTC;
+updated 2026-10-04 UTC. This is
 sequencing/acceptance guidance, not an approved API, contract/status change, or
-permission to activate an issuer. Use the current `spec-lock.json` revision
-`814084f4d7d06ac85be358ba84533d0718607746`; changing it requires a separately
+permission to activate an issuer. Use the current `spec-lock.json` revision;
+changing it requires a separately
 reviewed compatibility decision. Historical inspection pins remain historical.
 
 ## Objective and scope
@@ -139,10 +140,20 @@ The required shape is therefore:
 
 ```text
 trusted host prepares exact material and records both decisions
-    → SDK checks the selected closed representations and bindings
-    → host's qualified finalization boundary revalidates and atomically commits
+    → host enters its finalization transaction / equivalent ordering boundary
+        → host resolves authoritative material and invokes SDK validators
+        → host revalidates revisions/deadlines, consumes once and atomically commits
     → host privately delivers the committed result to the registered mediator
 ```
+
+The host controls finalization and calls SDK validation/derivation behavior
+inside that boundary, over the exact retained material selected there. The SDK
+does not orchestrate separate check/save callbacks. Validators must be pure,
+deterministic behavior over retained bytes and explicit inputs (including any
+time value), with no network, storage, implicit clock or mutable-source lookup.
+Preparation outside the boundary is advisory and cannot replace these checks.
+Validation runs while the ordering boundary is held; the commit is the
+linearization point, not the earlier validator invocation.
 
 The SDK must not manufacture atomicity by composing independent `get`,
 `isActive`, `approve`, `consume` and `save` callbacks, or by adding an SDK-local
@@ -168,15 +179,35 @@ Before implementing a finalization port, specify its behavioral contract:
   consumes the record once, and commits the complete Grant and verifier state
   at one linearization point. SDK validation must not become an unfenced precheck.
 - It distinguishes rejection with no commit, confirmed commit, and unknown
-  commit outcome. Unknown outcomes prohibit delivery/retry, require freezing
-  potentially committed authority, and block fresh issuance until revocation is
-  confirmed. They are never interpreted as permission to remint under old consent.
+  commit outcome. The host assigns a stable, non-authorizing issuance-attempt key
+  to the approved record before finalization; one record has at most one attempt.
+  Record consumption, Grant/verifier state and the attempt outcome are atomically
+  indexed by that key. It is not a public capability or a caller-selected ID.
+- On unknown outcome, prohibit delivery/retry and quarantine that attempt and
+  approved record, not the whole principal or host. Reconcile by key through an
+  authoritative read ordered after the original transaction has terminated.
+  A missing row from a stale/read-replica snapshot does not prove no commit.
+  Confirmed no-commit discards prepared secrets and closes the attempt without
+  reusing old consent. Confirmed commit remains undelivered/frozen and requires
+  confirmed revocation before replacement issuance. Unresolved state remains
+  blocked; reconciliation never recovers or delivers the original secret.
+  A new approved record requires fresh decisions. Broader blocking is justified
+  only if the adapter cannot isolate the affected authority; its exact scope
+  and availability cost must then be stated and qualified, not assumed global.
+  The host tracks replacement lineage: a new reference or fresh consent cannot
+  bypass quarantine of the authority it replaces. Unrelated records may proceed
+  only when the adapter proves that isolation.
 - Private post-commit delivery and its uncertain outcome remain a separate
   host/mediator lifecycle. Public results never expose the raw credential.
 - The first non-live model uses host-owned authority revisions in one ordering
   boundary. This is a fixture topology, not a new identity profile or production
   trust root. External adapters require a concrete valid-through-commit mechanism,
   not an `active` flag, a TTL, or an interface promising safety by itself.
+  Stage 1 must also model an external authority participating in the ordering
+  boundary (or a provider-qualified validity guarantee), including loss of that
+  guarantee before commit. The host owns acquiring/checking that guarantee;
+  SDK validators receive retained inputs, not external-service callbacks.
+  The sketch is a port-shape check, not qualification of any external provider.
 
 These are design requirements, not exported method signatures or evidence that
 the current SDK implements issuance. Responsibility roles are not substitutes
@@ -193,7 +224,7 @@ live consumer. Specify the immutable record's material binding and invalidation
 semantics, the issuance linearization point, external-source ordering obligations,
 and post-commit delivery uncertainty state. Define dependency lifecycle,
 retention/data minimization and test fixtures. Estimate reusable SDK engineering
-separately from Calcu integration; set slice budget, stop conditions and named
+separately from selected-host integration; set slice budget, stop conditions and named
 exit evidence before coding. Accept the bounded finalization contract and
 positive/negative vectors, including explicit fixture limitations. A missing
 live adapter does not prevent this design or Stage 2. An incoherent contract
@@ -245,6 +276,10 @@ This development binding never implies production certification.
 | Identity unavailable/stale/inactive, unsupported profile, policy changed, snapshot/schema/request/projection changed or rehashed after consent | Reject at revalidation/commit; invalidate record; discard prepared secret; no repair/retry under old consent. |
 | Deadline expires or external invalidation is ordered before/at commit; external ordering cannot be demonstrated | Reject at the serialized commit fence; no Grant/verifier commit or credential delivery. If a valid commit linearizes first, later change follows ordinary admission/revocation rules; test both orderings rather than requiring every race to reject. |
 | Same record/reference issued concurrently or replayed after success | Exactly one commit/delivery eligibility; all other attempts reject with no duplicate credential. |
+| Commit timeout / lost acknowledgement; outcome unknown | Quarantine the attempt and approved record by the stable attempt key; no delivery or retry. Independent records remain eligible only if their authority is isolated. Reconciliation stays blocked while the original transaction can still commit or the outcome read is non-authoritative. |
+| Reconcile unknown outcome: authoritative no-commit / committed / unavailable | No-commit closes the attempt and discards secrets; fresh decisions are needed. Committed freezes the undelivered Grant and confirms revocation before replacement. Unavailable remains quarantined. No branch recovers the raw credential or remints under old consent. |
+| New reference/consent attempts to replace quarantined authority; unrelated isolated record | Replacement remains blocked by host-owned lineage until reconciliation/revocation resolves it. An unrelated record proceeds only with demonstrated isolation; no implicit principal-wide or host-wide denial. |
+| External authority shares ordering or has a provider-qualified valid-through-commit guarantee; guarantee lost/expired/unavailable before commit | The same finalization contract can admit only while the guarantee covers commit. Missing coverage rejects without commit/delivery; an `active` response plus ordinary expiry is insufficient. Unit modeling is not provider qualification. |
 | Crash/restart around prepare, commit, or delivery; delivery timeout/uncertain acknowledgement | No pre-commit usable authority. Freeze committed-but-undelivered authority; confirm revocation before fresh consent/issuance. After restart, alternatively invalidate every pre-restart credential at every enforcement point. If neither can be guaranteed, block startup/issuance. No transparent remint/retry assumption. |
 | Attempt to observe secret through browser, model/tool arguments, public response, logs, or persisted verifier store | Test demonstrates no raw credential exposure; credential state contains verifier hash only, while authoritative state retains the complete Grant and exact audience separately. |
 | In-memory store passes unit vectors | Report unit behavior only; explicitly not durability, crash-recovery, external-ordering, or host certification evidence. |

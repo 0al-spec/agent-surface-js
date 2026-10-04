@@ -3,8 +3,6 @@
 Status: **design incomplete; no reviewed host is qualified for live activation**.
 Reviewed 2026-10-04 UTC. This is an evidence and owner-decision matrix for the
 [consent-bound issuance plan](../plans/consent-approved-request-issuance-slice.md).
-It does not authorize an issuer, migration, source-lock update, or ADP status
-change.
 
 ## Decision summary
 
@@ -50,6 +48,21 @@ selected Host-Provisioned Bearer binding, not every possible SDK profile.
 | Credential generation, storage and private delivery — key-custody/mediator owners | Real issuance/private delivery is not implemented; symbolic counters do not prove custody. | **Open** | Specify CSPRNG, encoding, expiry, verifier-only credential storage, complete Grant/audience retention and private post-commit delivery. Define leakage, ambiguous delivery, restart and no-remint vectors; passing implementation tests is not required to accept this design. |
 | Current Action admission/revocation — application enforcement owner | Offline checks do not prove current enforcement. | **Open for activation** | Record the downstream obligation to reject revoked/stale credentials at all actual enforcement points. Qualify those points in integration and require them at activation. |
 
+## Stage 1 decision status
+
+`Drafted` means requirements/sketches are recorded, but detailed contract and
+vectors have not been accepted. `Accepted` requires an explicit review decision
+with a linked contract/vector revision; no row is accepted by this report.
+These are local design decisions, not duplicate ADP delivery statuses.
+
+| Decision covering the obligations above | Status | Review material / remaining decision |
+| --- | --- | --- |
+| Principal, Runtime, identity and policy inputs | Drafted | Define closed trusted-input bindings and lifecycle vectors; select supported profile combinations for the fixture. |
+| Retained material and both consent decisions | Drafted | Define the exact immutable record and actor/material/revision bindings, including withdrawal. |
+| Host-controlled finalization and pure SDK validation | Drafted | [Behavioral boundary](../plans/consent-approved-request-issuance-slice.md#sdkhost-boundary-for-the-next-implementation-decision); review atomicity, explicit time and rejection outcomes. |
+| Attempt identity, reconciliation and delivery lifecycle | Drafted | Review stable attempt-key custody, authoritative outcome reads, per-record quarantine and replacement-after-revocation vectors. |
+| Local/external topology and bounded test scope | Drafted | Review both the one-boundary fixture and external-ordering/valid-through-commit sketch; retain separate concrete-provider qualification. |
+
 ## Stage 1 exit rule
 
 Stage 1 completes when the bounded behavioral contract, responsibility split,
@@ -57,7 +70,8 @@ fixture topology, failure semantics and positive/negative vectors are reviewed
 and accepted. Specify every design obligation in the last column, including
 the finalization port described in the plan. Unresolved contract semantics block
 implementation of that behavior; missing concrete-host evidence does not.
-No public API is frozen by this document, and acceptance is not recorded yet.
+All rows in the design-status table must be accepted with review references;
+accepting the requirements alone is not acceptance of the detailed contract.
 
 `Open` and `Partial` above describe host evidence, not Stage 1 exit status.
 They remain visible without requiring Stage 2/3 results before Stage 1 can exit.
@@ -81,8 +95,14 @@ not prerequisites for a bounded SDK implementation with honest fixtures.
    valid-through-commit guarantee. Without either, that topology cannot activate;
    cached `active`, future expiry or a local transaction cannot substitute.
 
-This correction changes sequencing, not RFC guarantees, ADP status, implemented
-capabilities, source-lock contents, or permission for live credential delivery.
+## Non-claims
+
+This planning report neither changes RFC guarantees, source-lock contents or
+ADP status, nor approves an exported API, consumer migration or live credential
+delivery. It records design requirements and limited evidence, not an implemented
+issuer, authenticated decisions, durable host qualification, full conformance
+or production certification. Deployment-owner approval remains mandatory for
+real integration/activation; bounded SDK design review is a separate decision.
 
 ## Evidence references
 
@@ -90,5 +110,5 @@ capabilities, source-lock contents, or permission for live credential delivery.
 - [Non-live symbolic qualification](../host-contract-qualification.md)
 - [Host authentication/adapter selection](../plans/host-auth-adapter-selection.md)
 - [Memos session/account fence design and writer map](../plans/memos-session-issuance-fence.md)
-- [SDK/host responsibility boundary](../plans/consent-approved-request-issuance-slice.md)
+- [SDK/host responsibility boundary](../plans/consent-approved-request-issuance-slice.md#sdkhost-boundary-for-the-next-implementation-decision)
 - [Host-provisioned binding implementation matrix](../compatibility/host-binding-implementation-matrix.md)
