@@ -112,6 +112,11 @@ The [outcome qualification report](../reports/finalization-outcome-qualification
 maps selected vectors to this draft. Those tests complement, not replace, the
 older [symbolic host qualification](../host-contract-qualification.md).
 
+The [approved-request record candidate](approved-request-record-contract.md)
+proposes exact material, decision, authority-observation, attempt and
+committed-authority groups, with minimization and invalidation semantics. It is
+still awaiting review and does not freeze a database layout or public API.
+
 Before Stage 2 SDK implementation, accept the detailed retained-record format,
 selected identity/consent input contract, complete Grant/verifier derivation and
 typed rejection reasons. Before Stage 3/4, supply the actual authenticated host,
