@@ -52,6 +52,7 @@ export class NonLiveFinalizationHost {
   readonly #trace: string[] = [];
   #nextAttempt = 1;
   #insideBoundary = false;
+  #externalRevision: number | undefined;
 
   constructor(validator: FixtureRetainedBinding) {
     this.#validator = validator;
@@ -61,15 +62,26 @@ export class NonLiveFinalizationHost {
     material: string,
     localPreview = material,
     issuerConsent = material,
-    externalRevision?: number,
   ): ApprovedReference {
     return this.#approve(
       material,
       localPreview,
       issuerConsent,
-      externalRevision,
+      this.#externalRevision,
       { head: undefined },
     );
+  }
+
+  /** Advances the symbolic external authority; real ordering is not modeled. */
+  setExternalRevision(revision: number): void {
+    if (!Number.isSafeInteger(revision) || revision < 0)
+      throw new Error('external_revision_invalid');
+    if (
+      this.#externalRevision !== undefined &&
+      revision <= this.#externalRevision
+    )
+      throw new Error('external_revision_not_advanced');
+    this.#externalRevision = revision;
   }
 
   #approve(
@@ -113,7 +125,7 @@ export class NonLiveFinalizationHost {
       freshMaterial,
       freshMaterial,
       freshMaterial,
-      previous.externalRevision,
+      this.#externalRevision,
       previous.lineage,
     );
   }
@@ -151,6 +163,7 @@ export class NonLiveFinalizationHost {
           record.externalRevision !== undefined &&
           (coverage?.kind !== 'ordered' ||
             coverage.revision !== record.externalRevision ||
+            this.#externalRevision !== record.externalRevision ||
             !Number.isSafeInteger(coverage.validUntil) ||
             coverage.validUntil <= now)
         )

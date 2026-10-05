@@ -154,7 +154,8 @@ describe('non-live finalization outcome contract', () => {
 
   it('F10: external ordering coverage fits the same finalization shape', () => {
     const model = host();
-    const record = model.approve('a', 'a', 'a', 7);
+    model.setExternalRevision(7);
+    const record = model.approve('a');
     const coverage = Object.freeze({
       kind: 'ordered' as const,
       revision: 7,
@@ -225,7 +226,8 @@ describe('non-live finalization outcome contract', () => {
     { kind: 'ordered', revision: 7, validUntil: 9 },
   ])('F11: missing, lost, drifted or expired external coverage rejects: %j', (coverage) => {
     const model = host();
-    const record = model.approve('a', 'a', 'a', 7);
+    model.setExternalRevision(7);
+    const record = model.approve('a');
     expect(model.finalize(record, 10, 'acknowledged', coverage)).toBe(
       'rejected',
     );
@@ -233,5 +235,35 @@ describe('non-live finalization outcome contract', () => {
       'host:paired-symbolic-commit',
     );
     expect(() => model.deliver(record)).toThrow('delivery_not_eligible');
+  });
+
+  it('F14: replacement captures current external revision instead of stale predecessor revision', () => {
+    const model = host();
+    model.setExternalRevision(7);
+    const original = model.approve('original');
+    model.setExternalRevision(8);
+    expect(
+      model.finalize(original, 10, 'acknowledged', {
+        kind: 'ordered',
+        revision: 8,
+        validUntil: 20,
+      }),
+    ).toBe('rejected');
+    const replacement = model.replace(original, 'fresh');
+    expect(
+      model.finalize(replacement, 11, 'acknowledged', {
+        kind: 'ordered',
+        revision: 8,
+        validUntil: 21,
+      }),
+    ).toBe('committed');
+    const stale = model.approve('stale');
+    expect(
+      model.finalize(stale, 11, 'acknowledged', {
+        kind: 'ordered',
+        revision: 7,
+        validUntil: 21,
+      }),
+    ).toBe('rejected');
   });
 });

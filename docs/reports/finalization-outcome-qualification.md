@@ -37,6 +37,7 @@ Test IDs are labels in
 | F11 | Missing/unfenced/unavailable/drifted/expired external coverage | Reject before symbolic commit and delivery. |
 | F12 | Replace rejected ancestor, quarantine descendant, then try ancestor/direct bypass | Both replacement paths reject; independent lineage still commits. |
 | F13 | Descendant resolves no-commit or committed/revoked | Only the current head can create a successor. Ancestor/sibling forks remain rejected before and after resolution. |
+| F14 | External authority advances 7→8 after record capture | Old record rejects even when presented with newer coverage; replacement captures revision 8 and admits only matching coverage. |
 
 ## Non-claims and open gates
 
@@ -76,5 +77,15 @@ fixture now shares lineage state and admits replacement/finalization only at
 the current head; it never reopens an ancestor. Fresh decisions do not bypass
 quarantine, and independent fixture-declared lineages remain available. This
 tests the chosen symbolic replacement strategy, not real-host lineage isolation.
+
+Review follow-up on 2026-10-05 UTC: external authority is now a monotonic
+fixture-owned revision. Records capture its current value at approval; finalization
+requires both that captured value and supplied coverage to match the current
+revision. Replacement captures the current source revision rather than copying
+the predecessor. F14 checks the advance, stale-record rejection and fresh
+replacement admission. This remains symbolic and does not qualify external
+ordering.
 Follow-up validation: 22 focused vectors and 16 Vitest files / 648 tests passed,
 along with consumer suites, build, package dry-run and whitespace checks.
+After adding F14, 23 focused vectors and 16 Vitest files / 649 tests passed;
+consumer suites, build, package dry-run and whitespace checks passed again.
