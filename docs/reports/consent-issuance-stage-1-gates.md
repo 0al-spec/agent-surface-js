@@ -65,6 +65,13 @@ These are local design decisions, not duplicate ADP delivery statuses.
 | Attempt identity, reconciliation and delivery lifecycle | Drafted | Review stable attempt-key custody, authoritative outcome reads, per-record quarantine and replacement-after-revocation vectors. |
 | Local/external topology and bounded test scope | Drafted | Review both the one-boundary fixture and external-ordering/valid-through-commit sketch; retain separate concrete-provider qualification. |
 
+The [detailed finalization draft](../plans/finalization-port-contract.md) now
+specifies host control, the outcome index and quarantine/reconciliation shape.
+[Selected executable vectors](finalization-outcome-qualification.md) explore
+those decisions with honest non-live assumptions. The rows remain `Drafted`:
+tests are not acceptance of the remaining identity/consent/material contracts
+or qualification of real host/provider guarantees.
+
 ## Stage 1 exit rule
 
 Stage 1 completes when the bounded behavioral contract, responsibility split,
