@@ -26,8 +26,8 @@ invariants below.
 | Host identity | Unpredictable host-owned record reference, host/store namespace, current record revision, lifecycle state | Resolve only through the authenticated private host path. A copied or guessed reference is not authentication, consent, or authority. |
 | Approved material | Exact semantic request; selected manifest and schema snapshot; effective policy; requested actions/scopes/constraints; independently derived identity and exposure projections; canonical local preview material and issuer consent-view material | Keep immutable bytes or references to immutable, content-addressed versions. Each reference must resolve to the exact bytes validated. If the backing store cannot guarantee immutability and availability for the required period, retain the bytes locally. Reuse only hashes and canonicalization rules already defined by the selected ASP profile; do not invent a record hash or treat a host revision as a cryptographic proof. |
 | Authority observations | Host-owned User reference and exact session reference/generation; registered Runtime reference/revision; identity evidence tuple and retained verification result/reference; policy and snapshot revisions; their deadlines and source owners | References identify the authoritative source to re-resolve inside the host fence. Record the versions/freshness accepted at preview so drift is detectable. A cached “active” result or stored revision is not a current authorization decision. Never copy session credentials into the record. |
-| Local decision | One authenticated local Consent Preview decision | Bind to the approved material revision and exact locally displayed canonical preview; record decision outcome, authenticated actor reference, decision time, expiry/deadline, and withdrawal/revocation state/version. The host owns authentication and lifecycle semantics. |
-| Issuer decision | One separately authenticated Grant Issuer consent decision | Bind to the same approved material revision and the issuer's own verified consent view; record its authorized actor/policy authority, outcome, decision time, expiry/deadline, and withdrawal/revocation state/version. It remains a separate decision even when one UI presents both views. |
+| Local decision | One authenticated local Consent Preview decision | Bind to the approved material revision and exact locally displayed canonical preview; record decision outcome, authenticated actor reference, decision time, expiry/deadline, and withdrawal/revocation state/version. The actor must be the User bound to this record, or a delegate whose authority to consent for that User is independently verified by host policy. |
+| Issuer decision | One separately authenticated Grant Issuer consent decision | Bind to the same approved material revision and the issuer's own verified consent view; record its authorized actor/policy authority, outcome, decision time, expiry/deadline, and withdrawal/revocation state/version. The actor or policy authority must be authorized for this issuer and application. It remains a separate decision even when one UI presents both views. |
 | Finalization attempt | Host-generated stable attempt key, approved-record reference/revision, replacement-lineage reference, attempt state and finalization outcome | Assign once before entering the finalization boundary. It is an idempotent recovery index, never a caller-selected capability. A record has at most one attempt; unknown outcome quarantines the affected record and lineage until authoritative reconciliation. |
 | Committed authority | Complete Agent Grant and exact complete hashing view; exact credential audience; verifier-only credential state; delivery state/reference | Commit atomically with record consumption and attempt outcome. Keep the complete Grant/hash view for the Grant lifetime and required audit-retention period. Never persist or log the raw credential in this record. |
 
@@ -35,9 +35,11 @@ The internal “approved material revision” above means a host-controlled vers
 of the exact immutable material group, not a new ASP member. Local and issuer
 consent views can differ in presentation; each decision binds to its own exact
 view while both refer to the same approved material revision. Human-readable
-labels are display aids, not authority. Do not infer that the two decision
-makers must be different people unless the selected deployment policy requires
-it.
+labels are display aids, not authority. The local decision's actor binding
+must resolve to this record's authenticated User or verified delegated
+authority; the issuer decision must resolve to the issuer's authorized actor
+or policy authority. Do not infer that the two decision makers must be
+different people unless the selected deployment policy requires it.
 
 ## Minimize retained data
 
@@ -75,22 +77,28 @@ prepared → approved → finalizing
                        ├─ confirmed commit   → consumed → delivery pending → delivered
                        └─ unknown            → quarantined → reconciled
 
+prepared --either decision denies--> denied/closed
 prepared/approved --material, authority, expiry, or consent drift--> invalidated
 ```
 
 The host may use different persisted labels, but must preserve these transitions:
 
-1. `prepared` becomes `approved` only after both distinct decisions are
-   authenticated and bound to the same exact approved material revision.
+1. `prepared` becomes `approved` only if both distinct decisions are
+   authenticated, affirmative, unexpired, not withdrawn, correctly actor-bound,
+   and bound to the same exact approved material revision. A denial by either
+   decision-maker terminally closes the record as denied; two valid denials
+   never satisfy the approval guard.
 2. Before commit, any change to a bound input or its accepted revision,
    unavailable required authority, expired deadline, or withdrawn decision
    terminally invalidates this record. The host creates a new record and gets
    fresh decisions; it never repairs this record or reuses its consent.
 3. The finalization boundary resolves all references, recomputes the selected
-   profile's exact bindings, invokes deterministic SDK validation with explicit
-   time, and orders all relevant invalidation writers through the commit point.
-   One commit consumes the record and writes complete Grant, verifier-only
-   credential state, audience, attempt outcome, and delivery-pending state.
+   profile's exact bindings, and rechecks that both decisions remain
+   affirmative, unexpired, not withdrawn and correctly actor-bound. It invokes
+   deterministic SDK validation with explicit time and orders all relevant
+   invalidation writers through the commit point. One commit consumes the
+   record and writes complete Grant, verifier-only credential state, audience,
+   attempt outcome, and delivery-pending state.
 4. A known rejection writes no usable Grant or verifier. An uncertain result is
    quarantined under the preassigned attempt key; neither delivery nor retry is
    allowed until an authoritative outcome read is ordered after the original
@@ -98,9 +106,9 @@ The host may use different persisted labels, but must preserve these transitions
    replacement; confirmed no-commit closes the attempt and still requires a
    new record and fresh decisions.
 5. Delivery occurs only after confirmed commit through the private channel to
-   the exact registered mediator. Delivery uncertainty freezes use and follows
-   the selected revocation/recovery contract; it never causes reminting under
-   the old decisions.
+   the exact registered mediator. If delivery fails or its outcome is
+   uncertain, freeze use and follow the selected revocation/recovery contract;
+   never remint under the old decisions.
 
 Record reference, attempt key and lineage are lookup aids only. The host must
 authenticate the control path, establish ownership, and resolve the referenced
@@ -122,7 +130,23 @@ when it represents replacement authority.
 5. Keep concrete retention durations, actor separation rules, storage layout,
    and external-provider mechanisms deployment-owned. They need an explicit
    policy/evidence decision before implementation; this candidate does not
-   silently choose them.
+   silently choose them. Actor binding to the record's User and issuer-policy
+   authority is required; whether those actors must be different remains a
+   deployment-policy decision.
+
+## Required negative vectors
+
+- Local decision denies; issuer decision approves → denied/closed, no finalization.
+- Issuer decision denies; local decision approves → denied/closed, no
+  finalization.
+- Both decisions deny → denied/closed, never `approved`.
+- Local actor belongs to another User and has no verified delegated authority,
+  or issuer actor/policy is unauthorized → reject before approval.
+- Either decision expires or is withdrawn after approval but before commit →
+  finalization rejects with no Grant/verifier commit; old consent is not reused.
+- Delivery has a known failure after commit, or an unknown outcome → freeze
+  use and require confirmed revocation/recovery before replacement; never
+  remint from the same record.
 
 ## Acceptance and remaining gates
 
