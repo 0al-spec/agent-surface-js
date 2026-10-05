@@ -60,13 +60,15 @@ These are local design decisions, not duplicate ADP delivery statuses.
 | Decision covering the obligations above | Status | Review material / remaining decision |
 | --- | --- | --- |
 | Principal, Runtime, identity and policy inputs | Drafted | Define closed trusted-input bindings and lifecycle vectors; select supported profile combinations for the fixture. |
-| Retained material and both consent decisions | Drafted | Define the exact immutable record and actor/material/revision bindings, including withdrawal. |
+| Retained material and both consent decisions | Candidate drafted | Review the [bounded approved-record contract](../plans/approved-request-record-contract.md): immutable material references/bytes, independent decisions bound to one approved revision, minimization and invalidation. Actor-authentication mechanisms, deployment retention durations, and withdrawal-writer qualification remain open. |
 | Host-controlled finalization and pure SDK validation | Drafted | [Behavioral boundary](../plans/consent-approved-request-issuance-slice.md#sdkhost-boundary-for-the-next-implementation-decision); review atomicity, explicit time and rejection outcomes. |
 | Attempt identity, reconciliation and delivery lifecycle | Drafted | Review stable attempt-key custody, authoritative outcome reads, per-record quarantine and replacement-after-revocation vectors. |
 | Local/external topology and bounded test scope | Drafted | Review both the one-boundary fixture and external-ordering/valid-through-commit sketch; retain separate concrete-provider qualification. |
 
 The [detailed finalization draft](../plans/finalization-port-contract.md) now
-specifies host control, the outcome index and quarantine/reconciliation shape.
+specifies host control, the outcome index and quarantine/reconciliation shape;
+the [approved-record candidate](../plans/approved-request-record-contract.md)
+adds a reviewable retained-material and consent-decision model.
 [Selected executable vectors](finalization-outcome-qualification.md) explore
 those decisions with honest non-live assumptions. The rows remain `Drafted`:
 tests are not acceptance of the remaining identity/consent/material contracts
